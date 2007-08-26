@@ -622,40 +622,67 @@ port_t* port_create(struct a2j *self, int type, snd_seq_addr_t addr, const snd_s
   port_t *port;
   char *c;
   int err;
+  int client;
+  snd_seq_client_info_t * client_info_ptr;
+
+  err = snd_seq_client_info_malloc(&client_info_ptr);
+  if (err != 0)
+  {
+    error_log("Failed to allocate client info");
+    goto fail;
+  }
+
+  client = snd_seq_port_info_get_client(info);
+
+  err = snd_seq_get_any_client_info(self->seq, client, client_info_ptr);
+  if (err != 0)
+  {
+    error_log("Failed to get client info");
+    goto fail_free_client_info;
+  }
+
+  debug_log("client name: '%s'\n", snd_seq_client_info_get_name(client_info_ptr));
+  debug_log("port name: '%s'\n", snd_seq_port_info_get_name(info));
 
   port = calloc(1, sizeof(port_t));
   if (!port)
-    return NULL;
+  {
+    goto fail_free_client_info;
+  }
 
   port->jack_port = JACK_INVALID_PORT;
   port->remote = addr;
 
-  snprintf(port->name, sizeof(port->name), "%s-%d-%d-%s",
-    port_type[type].name, addr.client, addr.port, snd_seq_port_info_get_name(info));
+  snprintf(port->name, sizeof(port->name), "%s : %s", snd_seq_client_info_get_name(client_info_ptr), snd_seq_port_info_get_name(info));
 
   // replace all offending characters by -
   for (c = port->name; *c; ++c)
-    if (!isalnum(*c))
-      *c = '-';
+    if (!isalnum(*c) && *c != '(' && *c != ')' && *c != ':')
+      *c = ' ';
 
   port->jack_port = jack_port_register(self->jack_clients[0].client, port->name, JACK_DEFAULT_MIDI_TYPE, port_type[type].jack_caps, 0);
   if (port->jack_port == JACK_INVALID_PORT)
-    goto failed;
+    goto fail_free_port;
 
   if (type == PORT_INPUT)
     err = alsa_connect_from(self, port->remote.client, port->remote.port);
   else
     err = snd_seq_connect_to(self->seq, self->port_id, port->remote.client, port->remote.port);
   if (err)
-    goto failed;
+    goto fail_free_port;
 
   port->early_events = jack_ringbuffer_create(MAX_EVENT_SIZE*16);
 
   info_log("port created: %s\n", port->name);
   return port;
 
- failed:
+fail_free_port:
   port_free(self, port);
+
+fail_free_client_info:
+  snd_seq_client_info_free(client_info_ptr);
+
+fail:
   return NULL;
 }
 
