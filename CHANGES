@@ -1,0 +1,2 @@
+Changes since version 1:
+ * Improved build system (autotools) and support for older JACK variants
