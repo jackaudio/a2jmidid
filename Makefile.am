@@ -19,7 +19,7 @@
 
 bin_PROGRAMS = a2jmidid
 
-a2jmidid_SOURCES = a2jmidid.c
+a2jmidid_SOURCES = a2jmidid.c jack_compat.h
 
 a2jmidid_CFLAGS = @JACK_CFLAGS@ @ALSA_CFLAGS@ -D_GNU_SOURCE -Wall -fno-strict-aliasing
 if DEV_VERSION
