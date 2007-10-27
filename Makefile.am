@@ -27,3 +27,4 @@ a2jmidid_CFLAGS +=  -Werror
 endif
 
 a2jmidid_LDADD = @JACK_LIBS@ @ALSA_LIBS@
+EXTRA_DIST = gpl2.txt CHANGES bootstrap
