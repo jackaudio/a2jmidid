@@ -62,6 +62,9 @@
 #include <jack/jack.h>
 #include <jack/thread.h>
 
+#include "config.h"
+#include "jack_compat.h"
+
 #define JACK_INVALID_PORT NULL
 
 #define MAX_PORTS  64
