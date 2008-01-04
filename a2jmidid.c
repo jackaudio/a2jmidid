@@ -656,7 +656,13 @@ port_t* port_create(struct a2j *self, int type, snd_seq_addr_t addr, const snd_s
   port->jack_port = JACK_INVALID_PORT;
   port->remote = addr;
 
-  snprintf(port->name, sizeof(port->name), "%s : %s", snd_seq_client_info_get_name(client_info_ptr), snd_seq_port_info_get_name(info));
+  snprintf(
+    port->name,
+    sizeof(port->name),
+    "%s %s: %s",
+    type == PORT_INPUT ? "in": "out",
+    snd_seq_client_info_get_name(client_info_ptr),
+    snd_seq_port_info_get_name(info));
 
   // replace all offending characters by -
   for (c = port->name; *c; ++c)
