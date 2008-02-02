@@ -61,6 +61,7 @@
 #include <stdbool.h>
 #include <jack/jack.h>
 #include <jack/thread.h>
+#include <getopt.h>
 
 #include "config.h"
 #include "jack_compat.h"
@@ -119,6 +120,8 @@ struct a2j
   jack_ringbuffer_t *port_del; // port_t*
 
   stream_t stream[2];
+
+  int export_hw_ports;
 };
 
 static struct a2j * a2j_new(const char * jack_server_name);
@@ -181,7 +184,7 @@ void jack_shutdown(void *arg)
 
 static void help(const char* self)
 {
-  printf("Usage: %s [-j jack-server]\n", self);
+  printf("Usage: %s [-j jack-server] [-e | --export-hw]\n", self);
   printf("Defaults:\n");
   printf("-j default\n\n");
 }
@@ -190,16 +193,22 @@ int main(int argc, char *argv[])
 {
   struct a2j *midi;
   const char* jack_server = NULL;
+  int export_hw_ports = 0;
+
+  struct option long_opts[] = { { "export-hw", 0, 0, 'e' }, { 0, 0, 0, 0 } };
+
 
   printf("JACK MIDI <-> ALSA sequencer MIDI bridge\n");
   printf("Copyright 2006,2007 Dmitry S. Baikov\n");
   printf("Copyright 2007 Nedko Arnaudov\n\n");
+  int option_index = 0;
   while (1) {
-    int c = getopt(argc, argv, "j:");
+    int c = getopt_long(argc, argv, "j:eq", long_opts, &option_index);
     if (c == -1)
       break;
     switch (c) {
     case 'j': jack_server = optarg; break;
+	case 'e': export_hw_ports = 1; break;
     default:
       help(argv[0]);
       return 1;
@@ -210,6 +219,8 @@ int main(int argc, char *argv[])
 
   if (!midi)
     goto fail1;
+
+  midi->export_hw_ports = export_hw_ports;
 
   signal(SIGINT, &sigint_handler);
   signal(SIGTERM, &sigint_handler);
@@ -810,7 +821,7 @@ void update_port(struct a2j *self, snd_seq_addr_t addr, const snd_seq_port_info_
     return;
   }
 
-  if (port_type & SND_SEQ_PORT_TYPE_HARDWARE)
+  if (port_type & SND_SEQ_PORT_TYPE_HARDWARE && self->export_hw_ports != 1)
   {
     info_log("Ignoring hardware port\n");
     return;
