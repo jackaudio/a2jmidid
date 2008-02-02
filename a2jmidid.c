@@ -121,7 +121,7 @@ struct a2j
 
   stream_t stream[2];
 
-  int export_hw_ports;
+  bool export_hw_ports;
 };
 
 static struct a2j * a2j_new(const char * jack_server_name);
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 {
   struct a2j *midi;
   const char* jack_server = NULL;
-  int export_hw_ports = 0;
+  bool export_hw_ports = false;
 
   struct option long_opts[] = { { "export-hw", 0, 0, 'e' }, { 0, 0, 0, 0 } };
 
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
       break;
     switch (c) {
     case 'j': jack_server = optarg; break;
-	case 'e': export_hw_ports = 1; break;
+    case 'e': export_hw_ports = true; break;
     default:
       help(argv[0]);
       return 1;
@@ -821,7 +821,7 @@ void update_port(struct a2j *self, snd_seq_addr_t addr, const snd_seq_port_info_
     return;
   }
 
-  if (port_type & SND_SEQ_PORT_TYPE_HARDWARE && self->export_hw_ports != 1)
+  if ((port_type & SND_SEQ_PORT_TYPE_HARDWARE) && !self->export_hw_ports)
   {
     info_log("Ignoring hardware port\n");
     return;
