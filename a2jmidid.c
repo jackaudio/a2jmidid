@@ -670,8 +670,8 @@ port_t* port_create(struct a2j *self, int type, snd_seq_addr_t addr, const snd_s
   snprintf(
     port->name,
     sizeof(port->name),
-    "%s %s: %s",
-    type == PORT_INPUT ? "in": "out",
+    "%s [%s]: %s",
+    type == PORT_INPUT ? "p": "c",
     snd_seq_client_info_get_name(client_info_ptr),
     snd_seq_port_info_get_name(info));
 
