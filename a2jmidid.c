@@ -670,9 +670,9 @@ port_t* port_create(struct a2j *self, int type, snd_seq_addr_t addr, const snd_s
   snprintf(
     port->name,
     sizeof(port->name),
-    "%s [%s]: %s",
-    type == PORT_INPUT ? "p": "c",
+    "%s (%s): %s",
     snd_seq_client_info_get_name(client_info_ptr),
+    type == PORT_INPUT ? "capture": "playback",
     snd_seq_port_info_get_name(info));
 
   // replace all offending characters by -
