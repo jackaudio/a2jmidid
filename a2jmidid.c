@@ -2,7 +2,7 @@
  * ALSA SEQ < - > JACK MIDI bridge
  *
  * Copyright (c) 2006,2007 Dmitry S. Baikov <c0ff@konstruktiv.org>
- * Copyright (c) 2007 Nedko Arnaudov <nedko@arnaudov.name>
+ * Copyright (c) 2007,2008 Nedko Arnaudov <nedko@arnaudov.name>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 
   printf("JACK MIDI <-> ALSA sequencer MIDI bridge\n");
   printf("Copyright 2006,2007 Dmitry S. Baikov\n");
-  printf("Copyright 2007 Nedko Arnaudov\n\n");
+  printf("Copyright 2007,2008 Nedko Arnaudov\n\n");
   int option_index = 0;
   while (1) {
     int c = getopt_long(argc, argv, "j:eq", long_opts, &option_index);
@@ -324,6 +324,7 @@ void stream_detach(struct a2j *self, int dir)
     port_t *port = str->ports[i];
     while (port) {
       port_t *next = port->next;
+      info_log("port deleted: %s\n", port->name);
       port_free(self, port);
       port = next;
     }
@@ -625,7 +626,6 @@ void port_free(struct a2j *self, port_t *port)
     jack_ringbuffer_free(port->early_events);
   if (port->jack_port != JACK_INVALID_PORT)
     jack_port_unregister(self->jack_clients[0].client, port->jack_port);
-  info_log("port deleted: %s\n", port->name);
 
   free(port);
 }
@@ -689,7 +689,10 @@ port_t* port_create(struct a2j *self, int type, snd_seq_addr_t addr, const snd_s
   else
     err = snd_seq_connect_to(self->seq, self->port_id, port->remote.client, port->remote.port);
   if (err)
+  {
+    info_log("port skipped: %s\n", port->name);
     goto fail_free_port;
+  }
 
   port->early_events = jack_ringbuffer_create(MAX_EVENT_SIZE*16);
 
@@ -716,7 +719,7 @@ void update_port_type(struct a2j *self, int type, snd_seq_addr_t addr, int caps,
   int alsa_mask = port_type[type].alsa_mask;
   port_t *port = port_get(str->ports, addr);
 
-  info_log("update_port_type(%d:%d)\n", addr.client, addr.port);
+  debug_log("update_port_type(%d:%d)\n", addr.client, addr.port);
 
   if (port && (caps & alsa_mask)!=alsa_mask) {
     debug_log("setdead: %s\n", port->name);
@@ -737,99 +740,99 @@ void update_port(struct a2j *self, snd_seq_addr_t addr, const snd_seq_port_info_
   unsigned int port_caps = snd_seq_port_info_get_capability(info);
   unsigned int port_type = snd_seq_port_info_get_type(info);
 
-  info_log("port type: 0x%08X\n", port_type);
-  info_log("port caps: 0x%08X\n", port_caps);
+  debug_log("port type: 0x%08X\n", port_type);
+  debug_log("port caps: 0x%08X\n", port_caps);
 
   if (port_type & SND_SEQ_PORT_TYPE_SPECIFIC)
   {
-    info_log("SPECIFIC\n");
+    debug_log("SPECIFIC\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_GENERIC)
   {
-    info_log("MIDI_GENERIC\n");
+    debug_log("MIDI_GENERIC\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_GM)
   {
-    info_log("MIDI_GM\n");
+    debug_log("MIDI_GM\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_GS)
   {
-    info_log("MIDI_GS\n");
+    debug_log("MIDI_GS\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_XG)
   {
-    info_log("MIDI_XG\n");
+    debug_log("MIDI_XG\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_MT32)
   {
-    info_log("MIDI_MT32\n");
+    debug_log("MIDI_MT32\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_GM2)
   {
-    info_log("MIDI_GM2\n");
+    debug_log("MIDI_GM2\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_SYNTH)
   {
-    info_log("SYNTH\n");
+    debug_log("SYNTH\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_DIRECT_SAMPLE)
   {
-    info_log("DIRECT_SAMPLE\n");
+    debug_log("DIRECT_SAMPLE\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_SAMPLE)
   {
-    info_log("SAMPLE\n");
+    debug_log("SAMPLE\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_HARDWARE)
   {
-    info_log("HARDWARE\n");
+    debug_log("HARDWARE\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_SOFTWARE)
   {
-    info_log("SOFTWARE\n");
+    debug_log("SOFTWARE\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_SYNTHESIZER)
   {
-    info_log("SYNTHESIZER\n");
+    debug_log("SYNTHESIZER\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_PORT)
   {
-    info_log("PORT\n");
+    debug_log("PORT\n");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_APPLICATION)
   {
-    info_log("APPLICATION\n");
+    debug_log("APPLICATION\n");
   }
 
   if (port_type == 0)
   {
-    info_log("Ignoring port of type 0\n");
+    debug_log("Ignoring port of type 0\n");
     return;
   }
 
   if ((port_type & SND_SEQ_PORT_TYPE_HARDWARE) && !self->export_hw_ports)
   {
-    info_log("Ignoring hardware port\n");
+    debug_log("Ignoring hardware port\n");
     return;
   }
 
   if (port_caps & SND_SEQ_PORT_CAP_NO_EXPORT)
   {
-    info_log("Ignoring no-export port\n");
+    debug_log("Ignoring no-export port\n");
     return;
   }
 
@@ -844,6 +847,7 @@ void free_ports(struct a2j *self, jack_ringbuffer_t *ports)
   int sz;
   while ((sz = jack_ringbuffer_read(ports, (char*)&port, sizeof(port)))) {
     assert (sz == sizeof(port));
+    info_log("port deleted: %s\n", port->name);
     port_free(self, port);
   }
 }
