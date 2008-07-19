@@ -47,21 +47,20 @@
  *
  */
 
+#include <signal.h>
+#include <semaphore.h>
+#include <ctype.h>
+#include <stdbool.h>
+
 #include <alsa/asoundlib.h>
+
 #include <jack/jack.h>
 #include <jack/midiport.h>
 #include <jack/ringbuffer.h>
-#include <jack/thread.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <signal.h>
-#include <semaphore.h>
-#include <time.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <jack/jack.h>
-#include <jack/thread.h>
+
 #include <getopt.h>
+
+#include "log.h"
 
 #define JACK_INVALID_PORT NULL
 
@@ -129,99 +128,6 @@ static int a2j_start(struct a2j *self);
 static int a2j_stop(struct a2j *self);
 static void a2j_read(struct a2j * self, struct a2j_jack_client * client_ptr, jack_nframes_t nframes);
 static void a2j_write(struct a2j * self, struct a2j_jack_client * client_ptr, jack_nframes_t nframes);
-
-#define LOG_LEVEL_INFO   1
-#define LOG_LEVEL_ERROR  2
-#define LOG_LEVEL_DEBUG  3
-
-void
-a2j_log_stdout_stderr(
-  int level,
-  const char * message)
-{
-  FILE * out;
-
-  switch (level)
-  {
-  case LOG_LEVEL_INFO:
-    out = stdout;
-    break;
-  case LOG_LEVEL_ERROR:
-    out = stderr;
-    break;
-#ifdef DEBUG
-  case LOG_LEVEL_DEBUG:
-    out = stdout;
-    break;
-#endif
-  default:
-    return;
-  }
-
-  fprintf(out, "%s\n", message);
-  fflush(out);
-}
-
-void
-a2j_log(
-  int level,
-  const char * prefix,
-  const char * format,
-  va_list ap)
-{
-  char buffer[300];
-  size_t len;
-
-  if (prefix != NULL)
-  {
-    len = strlen(prefix);
-    memcpy(buffer, prefix, len);
-  }
-  else
-  {
-    len = 0;
-  }
-
-  vsnprintf(buffer + len, sizeof(buffer) - len, format, ap);
-
-  a2j_log_stdout_stderr(level, buffer);
-}
-
-void
-a2j_error(
-  const char * format,
-  ...)
-{
-	va_list ap;
-
-	va_start(ap, format);
-	a2j_log(LOG_LEVEL_ERROR, NULL, format, ap);
-	va_end(ap);
-}
-
-void
-a2j_info(
-  const char * format,
-  ...)
-{
-	va_list ap;
-
-	va_start(ap, format);
-	a2j_log(LOG_LEVEL_INFO, NULL, format, ap);
-	va_end(ap);
-}
-
-void
-a2j_debug(
-  const char * format,
-  ...)
-{
-	va_list ap;
-
-	va_start(ap, format);
-	a2j_log(LOG_LEVEL_DEBUG, NULL, format, ap);
-	va_end(ap);
-}
 
 #define NSEC_PER_SEC ((int64_t)1000*1000*1000)
 
