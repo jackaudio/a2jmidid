@@ -1,0 +1,26 @@
+a2j_read:
+ add new ports
+ reads queued snd_seq_event's
+ if PORT_EXIT: mark port as dead
+ if PORT_ADD, PORT_CHANGE: send addr to a2j_port_thread (it also may mark port as dead)
+ else process input event
+ remove dead ports and send them to a2j_port_thread
+
+a2j_write:
+ remove dead ports and send them to a2j_port_thread
+ add new ports
+ queue output events
+
+a2j_port_thread:
+ wait for port_sem
+ free deleted ports
+ create new ports or mark existing as dead
+
+
+
+
+ringbuffers:
+ * early_events ( alsa_midi_event_t + data)
+ * new_ports
+ * port_add (snd_seq_addr_t)
+ * port_del (port_t *)

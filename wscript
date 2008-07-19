@@ -61,7 +61,9 @@ def build(bld):
     prog = bld.create_obj('cc', 'program')
     prog.source = [
         'a2jmidid.c',
-        'log.c'
+        'log.c',
+        'port.c',
+        'port_thread.c',
         ]
     prog.target = 'a2jmidid'
     prog.uselib = 'ALSA JACK DBUS-1'
