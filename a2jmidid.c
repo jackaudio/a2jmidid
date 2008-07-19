@@ -23,16 +23,16 @@
  *  add new ports
  *  reads queued snd_seq_event's
  *  if PORT_EXIT: mark port as dead
- *  if PORT_ADD, PORT_CHANGE: send addr to port_thread (it also may mark port as dead)
+ *  if PORT_ADD, PORT_CHANGE: send addr to a2j_port_thread (it also may mark port as dead)
  *  else process input event
- *  remove dead ports and send them to port_thread
+ *  remove dead ports and send them to a2j_port_thread
  *
  * a2j_write:
- *  remove dead ports and send them to port_thread
+ *  remove dead ports and send them to a2j_port_thread
  *  add new ports
  *  queue output events
  *
- * port_thread:
+ * a2j_port_thread:
  *  wait for port_sem
  *  free deleted ports
  *  create new ports or mark existing as dead
@@ -132,7 +132,10 @@ static void a2j_write(struct a2j * self, struct a2j_jack_client * client_ptr, ja
 #define NSEC_PER_SEC ((int64_t)1000*1000*1000)
 
 static
-int jack_process(jack_nframes_t nframes, void *arg)
+int
+a2j_jack_process(
+  jack_nframes_t nframes,
+  void * arg)
 {
   struct a2j_jack_client * client_ptr = arg;
 
@@ -143,7 +146,10 @@ int jack_process(jack_nframes_t nframes, void *arg)
 }
 
 static
-void jack_freewheel(int starting, void *arg)
+void
+a2j_jack_freewheel(
+  int starting,
+  void * arg)
 {
   struct a2j *midi = arg;
   if (starting)
@@ -156,25 +162,35 @@ static
 int keep_walking = true;
 
 static
-void sigint_handler(int i)
+void
+a2j_sigint_handler(
+  int i)
 {
   keep_walking = false;
 }
 
 static
-void jack_shutdown(void *arg)
+void
+a2j_jack_shutdown(
+  void * arg)
 {
   keep_walking = false;
 }
 
-static void help(const char* self)
+static
+void
+a2j_help(
+  const char * self)
 {
   printf("Usage: %s [-j jack-server] [-e | --export-hw]\n", self);
   printf("Defaults:\n");
   printf("-j default\n\n");
 }
 
-int main(int argc, char *argv[])
+int
+main(
+  int argc,
+  char *argv[])
 {
   struct a2j *midi;
   const char* jack_server = NULL;
@@ -195,7 +211,7 @@ int main(int argc, char *argv[])
     case 'j': jack_server = optarg; break;
     case 'e': export_hw_ports = true; break;
     default:
-      help(argv[0]);
+      a2j_help(argv[0]);
       return 1;
     }
   }
@@ -207,8 +223,8 @@ int main(int argc, char *argv[])
 
   midi->export_hw_ports = export_hw_ports;
 
-  signal(SIGINT, &sigint_handler);
-  signal(SIGTERM, &sigint_handler);
+  signal(SIGINT, &a2j_sigint_handler);
+  signal(SIGTERM, &a2j_sigint_handler);
 
   a2j_attach(midi);
   a2j_start(midi);
@@ -253,8 +269,8 @@ struct process_info {
 enum PortType { PORT_INPUT = 0, PORT_OUTPUT = 1 };
 
 typedef void (*port_jack_func)(struct a2j *self, struct a2j_port *port,struct process_info* info);
-static void do_jack_input(struct a2j *self, struct a2j_port *port, struct process_info* info);
-static void do_jack_output(struct a2j *self, struct a2j_port *port, struct process_info* info);
+static void a2j_do_jack_input(struct a2j *self, struct a2j_port *port, struct process_info* info);
+static void a2j_do_jack_output(struct a2j *self, struct a2j_port *port, struct process_info* info);
 
 struct a2j_port_type
 {
@@ -269,19 +285,22 @@ static struct a2j_port_type port_type[2] = {
     SND_SEQ_PORT_CAP_SUBS_READ,
     JackPortIsOutput|JackPortIsPhysical|JackPortIsTerminal,
     "in",
-    do_jack_input
+    a2j_do_jack_input
   },
   {
     SND_SEQ_PORT_CAP_SUBS_WRITE,
     JackPortIsInput|JackPortIsPhysical|JackPortIsTerminal,
     "out",
-    do_jack_output
+    a2j_do_jack_output
   }
 };
 
 
 static
-void stream_init(struct a2j *self, int dir)
+void
+a2j_stream_init(
+  struct a2j * self,
+  int dir)
 {
   struct a2j_stream *str = &self->stream[dir];
 
@@ -289,21 +308,27 @@ void stream_init(struct a2j *self, int dir)
   snd_midi_event_new(MAX_EVENT_SIZE, &str->codec);
 }
 
-static void port_free(struct a2j *self, struct a2j_port *port);
-static void free_ports(struct a2j *self, jack_ringbuffer_t *ports);
+static void a2j_port_free(struct a2j *self, struct a2j_port *port);
+static void a2j_free_ports(struct a2j *self, jack_ringbuffer_t *ports);
 
 static
-void stream_attach(struct a2j *self, int dir)
+void
+a2j_stream_attach(
+  struct a2j * self,
+  int dir)
 {
 }
 
 static
-void stream_detach(struct a2j *self, int dir)
+void
+a2j_stream_detach(
+  struct a2j * self,
+  int dir)
 {
   struct a2j_stream *str = &self->stream[dir];
   int i;
 
-  free_ports(self, str->new_ports);
+  a2j_free_ports(self, str->new_ports);
 
   // delete all ports from hash
   for (i=0; i<PORT_HASH_SIZE; ++i) {
@@ -311,7 +336,7 @@ void stream_detach(struct a2j *self, int dir)
     while (port) {
       struct a2j_port *next = port->next;
       a2j_info("port deleted: %s", port->name);
-      port_free(self, port);
+      a2j_port_free(self, port);
       port = next;
     }
     str->ports[i] = NULL;
@@ -319,7 +344,10 @@ void stream_detach(struct a2j *self, int dir)
 }
 
 static
-void stream_close(struct a2j *self, int dir)
+void
+a2j_stream_close(
+  struct a2j * self,
+  int dir)
 {
   struct a2j_stream *str = &self->stream[dir];
 
@@ -330,7 +358,10 @@ void stream_close(struct a2j *self, int dir)
 }
 
 bool
-a2j_jack_client_init(struct a2j * self, struct a2j_jack_client * client_ptr, const char * name)
+a2j_jack_client_init(
+  struct a2j * self,
+  struct a2j_jack_client * client_ptr,
+  const char * name)
 {
   int error;
   jack_status_t status;
@@ -353,9 +384,9 @@ a2j_jack_client_init(struct a2j * self, struct a2j_jack_client * client_ptr, con
     goto fail;
   }
 
-  jack_set_process_callback(client_ptr->client, jack_process, client_ptr);
-  jack_set_freewheel_callback(client_ptr->client, jack_freewheel, self);
-  jack_on_shutdown(client_ptr->client, jack_shutdown, NULL);
+  jack_set_process_callback(client_ptr->client, a2j_jack_process, client_ptr);
+  jack_set_freewheel_callback(client_ptr->client, a2j_jack_freewheel, self);
+  jack_on_shutdown(client_ptr->client, a2j_jack_shutdown, NULL);
 
   if (jack_activate(client_ptr->client))
   {
@@ -377,14 +408,16 @@ fail:
 }
 
 void
-a2j_jack_client_uninit(struct a2j_jack_client * client_ptr)
+a2j_jack_client_uninit(
+  struct a2j_jack_client * client_ptr)
 {
   jack_deactivate(client_ptr->client);
   jack_client_close(client_ptr->client);
 }
 
 struct a2j *
-a2j_new(const char * jack_server_name)
+a2j_new(
+  const char * jack_server_name)
 {
   struct a2j *self = calloc(1, sizeof(struct a2j));
   a2j_debug("midi: new");
@@ -403,20 +436,22 @@ a2j_new(const char * jack_server_name)
   self->port_del = jack_ringbuffer_create(2*MAX_PORTS*sizeof(struct a2j_port*));
   sem_init(&self->port_sem, 0, 0);
 
-  stream_init(self, PORT_INPUT);
-  stream_init(self, PORT_OUTPUT);
+  a2j_stream_init(self, PORT_INPUT);
+  a2j_stream_init(self, PORT_OUTPUT);
 
   return self;
 }
 
 static
-void a2j_destroy(struct a2j * self)
+void
+a2j_destroy(
+  struct a2j * self)
 {
   a2j_debug("midi: delete");
   a2j_detach(self);
 
-  stream_close(self, PORT_OUTPUT);
-  stream_close(self, PORT_INPUT);
+  a2j_stream_close(self, PORT_OUTPUT);
+  a2j_stream_close(self, PORT_INPUT);
 
   jack_ringbuffer_free(self->port_add);
   jack_ringbuffer_free(self->port_del);
@@ -428,7 +463,9 @@ void a2j_destroy(struct a2j * self)
 }
 
 static
-int a2j_attach(struct a2j * self)
+int
+a2j_attach(
+  struct a2j * self)
 {
   int err;
 
@@ -453,8 +490,8 @@ int a2j_attach(struct a2j * self)
     self->queue = snd_seq_alloc_queue(self->seq);
     snd_seq_start_queue(self->seq, self->queue, 0); 
 
-  stream_attach(self, PORT_INPUT);
-  stream_attach(self, PORT_OUTPUT);
+  a2j_stream_attach(self, PORT_INPUT);
+  a2j_stream_attach(self, PORT_OUTPUT);
 
   snd_seq_nonblock(self->seq, 1);
 
@@ -462,7 +499,9 @@ int a2j_attach(struct a2j * self)
 }
 
 static
-int a2j_detach(struct a2j * self)
+int
+a2j_detach(
+  struct a2j * self)
 {
   a2j_debug("midi: detach");
 
@@ -472,10 +511,10 @@ int a2j_detach(struct a2j * self)
   a2j_stop(self);
 
   jack_ringbuffer_reset(self->port_add);
-  free_ports(self, self->port_del);
+  a2j_free_ports(self, self->port_del);
 
-  stream_detach(self, PORT_INPUT);
-  stream_detach(self, PORT_OUTPUT);
+  a2j_stream_detach(self, PORT_INPUT);
+  a2j_stream_detach(self, PORT_OUTPUT);
 
   snd_seq_close(self->seq);
   self->seq = NULL;
@@ -483,14 +522,16 @@ int a2j_detach(struct a2j * self)
   return 0;
 }
 
-static void* port_thread(void *);
+static void* a2j_port_thread(void *);
 
-static void add_existing_ports(struct a2j *self);
-static void update_ports(struct a2j *self);
-static void add_ports(struct a2j_stream *str);
+static void a2j_add_existing_ports(struct a2j *self);
+static void a2j_update_ports(struct a2j *self);
+static void a2j_add_ports(struct a2j_stream *str);
 
 static
-int a2j_start(struct a2j *self)
+int
+a2j_start(
+  struct a2j * self)
 {
   int err;
 
@@ -505,14 +546,14 @@ int a2j_start(struct a2j *self)
   snd_seq_connect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
   snd_seq_drop_input(self->seq);
 
-  add_existing_ports(self);
-  update_ports(self);
-  add_ports(&self->stream[PORT_INPUT]);
-  add_ports(&self->stream[PORT_OUTPUT]);
+  a2j_add_existing_ports(self);
+  a2j_update_ports(self);
+  a2j_add_ports(&self->stream[PORT_INPUT]);
+  a2j_add_ports(&self->stream[PORT_OUTPUT]);
 
   self->keep_walking = true;
 
-  if ((err = pthread_create(&self->port_thread, NULL, port_thread, self))) {
+  if ((err = pthread_create(&self->port_thread, NULL, a2j_port_thread, self))) {
     self->keep_walking = false;
     return -errno;
   }
@@ -521,7 +562,9 @@ int a2j_start(struct a2j *self)
 }
 
 static
-int a2j_stop(struct a2j * self)
+int
+a2j_stop(
+  struct a2j * self)
 {
   a2j_debug("midi: stop");
 
@@ -540,7 +583,11 @@ int a2j_stop(struct a2j * self)
 }
 
 static
-int alsa_connect_from(struct a2j *self, int client, int port)
+int
+a2j_alsa_connect_from(
+  struct a2j * self,
+  int client,
+  int port)
 {
   snd_seq_port_subscribe_t* sub;
   snd_seq_addr_t seq_addr;
@@ -567,15 +614,20 @@ int alsa_connect_from(struct a2j *self, int client, int port)
  * ==================== Port routines =============================
  */
 static inline
-int port_hash(snd_seq_addr_t addr)
+int
+a2j_port_hash(
+  snd_seq_addr_t addr)
 {
   return (addr.client + addr.port) % PORT_HASH_SIZE;
 }
 
 static
-struct a2j_port* port_get(port_hash_t hash, snd_seq_addr_t addr)
+struct a2j_port *
+a2j_port_get(
+  port_hash_t hash,
+  snd_seq_addr_t addr)
 {
-  struct a2j_port **pport = &hash[port_hash(addr)];
+  struct a2j_port **pport = &hash[a2j_port_hash(addr)];
   while (*pport) {
     struct a2j_port *port = *pport;
     if (port->remote.client == addr.client && port->remote.port == addr.port)
@@ -586,17 +638,23 @@ struct a2j_port* port_get(port_hash_t hash, snd_seq_addr_t addr)
 }
 
 static
-void port_insert(port_hash_t hash, struct a2j_port *port)
+void
+a2j_port_insert(
+  port_hash_t hash,
+  struct a2j_port * port)
 {
-  struct a2j_port **pport = &hash[port_hash(port->remote)];
+  struct a2j_port **pport = &hash[a2j_port_hash(port->remote)];
   port->next = *pport;
   *pport = port;
 }
 
 static
-void port_setdead(port_hash_t hash, snd_seq_addr_t addr)
+void
+a2j_port_setdead(
+  port_hash_t hash,
+  snd_seq_addr_t addr)
 {
-  struct a2j_port *port = port_get(hash, addr);
+  struct a2j_port *port = a2j_port_get(hash, addr);
   if (port)
     port->is_dead = true; // see jack_process_internal
   else
@@ -604,7 +662,10 @@ void port_setdead(port_hash_t hash, snd_seq_addr_t addr)
 }
 
 static
-void port_free(struct a2j *self, struct a2j_port *port)
+void
+a2j_port_free(
+  struct a2j * self,
+  struct a2j_port * port)
 {
   //snd_seq_disconnect_from(self->seq, self->port_id, port->remote.client, port->remote.port);
   //snd_seq_disconnect_to(self->seq, self->port_id, port->remote.client, port->remote.port);
@@ -617,7 +678,12 @@ void port_free(struct a2j *self, struct a2j_port *port)
 }
 
 static
-struct a2j_port* port_create(struct a2j *self, int type, snd_seq_addr_t addr, const snd_seq_port_info_t *info)
+struct a2j_port *
+a2j_port_create(
+  struct a2j * self,
+  int type,
+  snd_seq_addr_t addr,
+  const snd_seq_port_info_t * info)
 {
   struct a2j_port *port;
   char *c;
@@ -671,7 +737,7 @@ struct a2j_port* port_create(struct a2j *self, int type, snd_seq_addr_t addr, co
     goto fail_free_port;
 
   if (type == PORT_INPUT)
-    err = alsa_connect_from(self, port->remote.client, port->remote.port);
+    err = a2j_alsa_connect_from(self, port->remote.client, port->remote.port);
   else
     err = snd_seq_connect_to(self->seq, self->port_id, port->remote.client, port->remote.port);
   if (err)
@@ -686,7 +752,7 @@ struct a2j_port* port_create(struct a2j *self, int type, snd_seq_addr_t addr, co
   return port;
 
 fail_free_port:
-  port_free(self, port);
+  a2j_port_free(self, port);
 
 fail_free_client_info:
   snd_seq_client_info_free(client_info_ptr);
@@ -699,11 +765,17 @@ fail:
  * ==================== Port add/del handling thread ==============================
  */
 static
-void update_port_type(struct a2j *self, int type, snd_seq_addr_t addr, int caps, const snd_seq_port_info_t *info)
+void
+a2j_update_port_type(
+  struct a2j * self,
+  int type,
+  snd_seq_addr_t addr,
+  int caps,
+  const snd_seq_port_info_t * info)
 {
   struct a2j_stream *str = &self->stream[type];
   int alsa_mask = port_type[type].alsa_mask;
-  struct a2j_port *port = port_get(str->ports, addr);
+  struct a2j_port *port = a2j_port_get(str->ports, addr);
 
   a2j_debug("update_port_type(%d:%d)", addr.client, addr.port);
 
@@ -714,14 +786,18 @@ void update_port_type(struct a2j *self, int type, snd_seq_addr_t addr, int caps,
 
   if (!port && (caps & alsa_mask)==alsa_mask) {
     assert (jack_ringbuffer_write_space(str->new_ports) >= sizeof(port));
-    port = port_create(self, type, addr, info);
+    port = a2j_port_create(self, type, addr, info);
     if (port)
       jack_ringbuffer_write(str->new_ports, (char*)&port, sizeof(port));
   }
 }
 
 static
-void update_port(struct a2j *self, snd_seq_addr_t addr, const snd_seq_port_info_t *info)
+void
+a2j_update_port(
+  struct a2j * self,
+  snd_seq_addr_t addr,
+  const snd_seq_port_info_t * info)
 {
   unsigned int port_caps = snd_seq_port_info_get_capability(info);
   unsigned int port_type = snd_seq_port_info_get_type(info);
@@ -822,24 +898,29 @@ void update_port(struct a2j *self, snd_seq_addr_t addr, const snd_seq_port_info_
     return;
   }
 
-  update_port_type(self, PORT_INPUT, addr, port_caps, info);
-  update_port_type(self, PORT_OUTPUT, addr, port_caps, info);
+  a2j_update_port_type(self, PORT_INPUT, addr, port_caps, info);
+  a2j_update_port_type(self, PORT_OUTPUT, addr, port_caps, info);
 }
 
 static
-void free_ports(struct a2j *self, jack_ringbuffer_t *ports)
+void
+a2j_free_ports(
+  struct a2j * self,
+  jack_ringbuffer_t * ports)
 {
   struct a2j_port *port;
   int sz;
   while ((sz = jack_ringbuffer_read(ports, (char*)&port, sizeof(port)))) {
     assert (sz == sizeof(port));
     a2j_info("port deleted: %s", port->name);
-    port_free(self, port);
+    a2j_port_free(self, port);
   }
 }
 
 static
-void update_ports(struct a2j *self)
+void
+a2j_update_ports(
+  struct a2j * self)
 {
   snd_seq_addr_t addr;
   int size;
@@ -852,30 +933,37 @@ void update_ports(struct a2j *self)
     assert (size == sizeof(addr));
     assert (addr.client != self->client_id);
     if ((err=snd_seq_get_any_port_info(self->seq, addr.client, addr.port, info))>=0) {
-      update_port(self, addr, info);
+      a2j_update_port(self, addr, info);
     } else {
-      //port_setdead(self->stream[PORT_INPUT].ports, addr);
-      //port_setdead(self->stream[PORT_OUTPUT].ports, addr);
+      //a2j_port_setdead(self->stream[PORT_INPUT].ports, addr);
+      //a2j_port_setdead(self->stream[PORT_OUTPUT].ports, addr);
     }
   }
 }
 
 static
-void* port_thread(void *arg)
+void *
+a2j_port_thread(
+  void * arg)
 {
   struct a2j *self = arg;
 
-  while (self->keep_walking) {
+  while (self->keep_walking)
+  {
     sem_wait(&self->port_sem);
-    free_ports(self, self->port_del);
-    update_ports(self);
+    a2j_free_ports(self, self->port_del);
+    a2j_update_ports(self);
   }
-  a2j_debug("port_thread exited");
+
+  a2j_debug("a2j_port_thread exited");
+
   return NULL;
 }
 
 static
-void add_existing_ports(struct a2j *self)
+void
+a2j_add_existing_ports(
+  struct a2j * self)
 {
   snd_seq_addr_t addr;
   snd_seq_client_info_t *client_info;
@@ -894,7 +982,7 @@ void add_existing_ports(struct a2j *self)
     while (snd_seq_query_next_port(self->seq, port_info) >= 0)
     {
       addr.port = snd_seq_port_info_get_port(port_info);
-      update_port(self, addr, port_info);
+      a2j_update_port(self, addr, port_info);
     }
   }
 }
@@ -903,7 +991,13 @@ void add_existing_ports(struct a2j *self)
  * =================== Input/output port handling =========================
  */
 static
-void set_process_info(struct process_info *info, struct a2j *self, struct a2j_jack_client * client_ptr, int dir, jack_nframes_t nframes)
+void
+a2j_set_process_info(
+  struct process_info * info,
+  struct a2j * self,
+  struct a2j_jack_client * client_ptr,
+  int dir,
+  jack_nframes_t nframes)
 {
   const snd_seq_real_time_t* alsa_time;
   snd_seq_queue_status_t *status;
@@ -925,23 +1019,28 @@ void set_process_info(struct process_info *info, struct a2j *self, struct a2j_ja
 }
 
 static
-void add_ports(struct a2j_stream *str)
+void
+a2j_add_ports(
+  struct a2j_stream * str)
 {
   struct a2j_port *port;
   while (jack_ringbuffer_read(str->new_ports, (char*)&port, sizeof(port))) {
     a2j_debug("jack: inserted port %s", port->name);
-    port_insert(str->ports, port);
+    a2j_port_insert(str->ports, port);
   }
 }
 
 static
-void jack_process_internal(struct a2j *self, struct process_info *info)
+void
+a2j_jack_process_internal(
+  struct a2j * self,
+  struct process_info * info)
 {
   struct a2j_stream *str = &self->stream[info->dir];
   port_jack_func process = port_type[info->dir].jack_func;
   int i, del=0;
 
-  add_ports(str);
+  a2j_add_ports(str);
 
   // process ports
   for (i=0; i<PORT_HASH_SIZE; ++i) {
@@ -974,7 +1073,11 @@ void jack_process_internal(struct a2j *self, struct process_info *info)
  * ============================ Input ==============================
  */
 static
-void do_jack_input(struct a2j *self, struct a2j_port *port, struct process_info *info)
+void
+a2j_do_jack_input(
+  struct a2j * self,
+  struct a2j_port * port,
+  struct process_info * info)
 {
   // process port->early_events
   struct a2j_alsa_midi_event ev;
@@ -995,7 +1098,10 @@ void do_jack_input(struct a2j *self, struct a2j_port *port, struct process_info 
 }
 
 static
-void port_event(struct a2j *self, snd_seq_event_t *ev)
+void
+a2j_port_event(
+  struct a2j * self,
+  snd_seq_event_t * ev)
 {
   const snd_seq_addr_t addr = ev->data.addr;
 
@@ -1010,13 +1116,17 @@ void port_event(struct a2j *self, snd_seq_event_t *ev)
     sem_post(&self->port_sem);
   } else if (ev->type == SND_SEQ_EVENT_PORT_EXIT) {
     a2j_debug("port_event: del %d:%d", addr.client, addr.port);
-    port_setdead(self->stream[PORT_INPUT].ports, addr);
-    port_setdead(self->stream[PORT_OUTPUT].ports, addr);
+    a2j_port_setdead(self->stream[PORT_INPUT].ports, addr);
+    a2j_port_setdead(self->stream[PORT_OUTPUT].ports, addr);
   }
 }
 
 static
-void input_event(struct a2j *self, snd_seq_event_t *alsa_event, struct process_info* info)
+void
+a2j_input_event(
+  struct a2j * self,
+  snd_seq_event_t * alsa_event,
+  struct process_info*  info)
 {
   jack_midi_data_t data[MAX_EVENT_SIZE];
   struct a2j_stream *str = &self->stream[PORT_INPUT];
@@ -1025,7 +1135,7 @@ void input_event(struct a2j *self, snd_seq_event_t *alsa_event, struct process_i
   int64_t frame_offset, event_frame;
   struct a2j_port *port;
 
-  port = port_get(str->ports, alsa_event->source);
+  port = a2j_port_get(str->ports, alsa_event->source);
   if (!port)
     return;
 
@@ -1070,7 +1180,11 @@ void input_event(struct a2j *self, snd_seq_event_t *alsa_event, struct process_i
 }
 
 static
-void a2j_read(struct a2j * self, struct a2j_jack_client * client_ptr, jack_nframes_t nframes)
+void
+a2j_read(
+  struct a2j * self,
+  struct a2j_jack_client * client_ptr,
+  jack_nframes_t nframes)
 {
   int res;
   snd_seq_event_t *event;
@@ -1079,14 +1193,14 @@ void a2j_read(struct a2j * self, struct a2j_jack_client * client_ptr, jack_nfram
   if (!self->keep_walking)
     return;
 
-  set_process_info(&info, self, client_ptr, PORT_INPUT, nframes);
-  jack_process_internal(self, &info); 
+  a2j_set_process_info(&info, self, client_ptr, PORT_INPUT, nframes);
+  a2j_jack_process_internal(self, &info); 
 
   while ((res = snd_seq_event_input(self->seq, &event))>0) {
     if (event->source.client == SND_SEQ_CLIENT_SYSTEM)
-      port_event(self, event);
+      a2j_port_event(self, event);
     else
-      input_event(self, event, &info);
+      a2j_input_event(self, event, &info);
   }
 }
 
@@ -1095,7 +1209,11 @@ void a2j_read(struct a2j * self, struct a2j_jack_client * client_ptr, jack_nfram
  */
 
 static
-void do_jack_output(struct a2j *self, struct a2j_port *port, struct process_info* info)
+void
+a2j_do_jack_output(
+  struct a2j * self,
+  struct a2j_port * port,
+  struct process_info * info)
 {
   struct a2j_stream *str = &self->stream[info->dir];
   int nevents = jack_midi_get_event_count(port->jack_buf);
@@ -1137,14 +1255,18 @@ void do_jack_output(struct a2j *self, struct a2j_port *port, struct process_info
 }
 
 static
-void a2j_write(struct a2j * self, struct a2j_jack_client * client_ptr, jack_nframes_t nframes)
+void
+a2j_write(
+  struct a2j * self,
+  struct a2j_jack_client * client_ptr,
+  jack_nframes_t nframes)
 {
   struct process_info info;
 
   if (!self->keep_walking)
     return;
 
-  set_process_info(&info, self, client_ptr, PORT_OUTPUT, nframes);
-  jack_process_internal(self, &info);
+  a2j_set_process_info(&info, self, client_ptr, PORT_OUTPUT, nframes);
+  a2j_jack_process_internal(self, &info);
   snd_seq_drain_output(self->seq);
 }
