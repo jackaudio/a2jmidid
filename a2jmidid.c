@@ -130,16 +130,98 @@ static int a2j_stop(struct a2j *self);
 static void a2j_read(struct a2j * self, struct a2j_jack_client * client_ptr, jack_nframes_t nframes);
 static void a2j_write(struct a2j * self, struct a2j_jack_client * client_ptr, jack_nframes_t nframes);
 
-#define MESSAGE(...) fprintf(stderr, __VA_ARGS__)
+#define LOG_LEVEL_INFO   1
+#define LOG_LEVEL_ERROR  2
+#define LOG_LEVEL_DEBUG  3
 
-#define info_log(...)  MESSAGE(__VA_ARGS__)
-#define error_log(...) MESSAGE(__VA_ARGS__)
+void
+a2j_log_stdout_stderr(
+  int level,
+  const char * message)
+{
+  FILE * out;
 
+  switch (level)
+  {
+  case LOG_LEVEL_INFO:
+    out = stdout;
+    break;
+  case LOG_LEVEL_ERROR:
+    out = stderr;
+    break;
 #ifdef DEBUG
-#define debug_log(...) MESSAGE(__VA_ARGS__)
-#else
-#define debug_log(...)
+  case LOG_LEVEL_DEBUG:
+    out = stdout;
+    break;
 #endif
+  default:
+    return;
+  }
+
+  fprintf(out, "%s\n", message);
+  fflush(out);
+}
+
+void
+a2j_log(
+  int level,
+  const char * prefix,
+  const char * format,
+  va_list ap)
+{
+  char buffer[300];
+  size_t len;
+
+  if (prefix != NULL)
+  {
+    len = strlen(prefix);
+    memcpy(buffer, prefix, len);
+  }
+  else
+  {
+    len = 0;
+  }
+
+  vsnprintf(buffer + len, sizeof(buffer) - len, format, ap);
+
+  a2j_log_stdout_stderr(level, buffer);
+}
+
+void
+a2j_error(
+  const char * format,
+  ...)
+{
+	va_list ap;
+
+	va_start(ap, format);
+	a2j_log(LOG_LEVEL_ERROR, NULL, format, ap);
+	va_end(ap);
+}
+
+void
+a2j_info(
+  const char * format,
+  ...)
+{
+	va_list ap;
+
+	va_start(ap, format);
+	a2j_log(LOG_LEVEL_INFO, NULL, format, ap);
+	va_end(ap);
+}
+
+void
+a2j_debug(
+  const char * format,
+  ...)
+{
+	va_list ap;
+
+	va_start(ap, format);
+	a2j_log(LOG_LEVEL_DEBUG, NULL, format, ap);
+	va_end(ap);
+}
 
 #define NSEC_PER_SEC ((int64_t)1000*1000*1000)
 
@@ -321,7 +403,7 @@ void stream_detach(struct a2j *self, int dir)
     port_t *port = str->ports[i];
     while (port) {
       port_t *next = port->next;
-      info_log("port deleted: %s\n", port->name);
+      a2j_info("port deleted: %s", port->name);
       port_free(self, port);
       port = next;
     }
@@ -360,7 +442,7 @@ a2j_jack_client_init(struct a2j * self, struct a2j_jack_client * client_ptr, con
 
   if (!client_ptr->client)
   {
-    error_log("Cannot create jack client\n");
+    a2j_error("Cannot create jack client");
     goto fail;
   }
 
@@ -370,7 +452,7 @@ a2j_jack_client_init(struct a2j * self, struct a2j_jack_client * client_ptr, con
 
   if (jack_activate(client_ptr->client))
   {
-    error_log("can't activate jack client\n");
+    a2j_error("can't activate jack client");
     goto fail_close;
   }
 
@@ -380,7 +462,7 @@ fail_close:
   error = jack_client_close(client_ptr->client);
   if (error != 0)
   {
-    error_log("Cannot close jack client\n");
+    a2j_error("Cannot close jack client");
   }
 
 fail:
@@ -398,7 +480,7 @@ struct a2j *
 a2j_new(const char * jack_server_name)
 {
   struct a2j *self = calloc(1, sizeof(struct a2j));
-  debug_log("midi: new\n");
+  a2j_debug("midi: new");
   if (!self)
     return NULL;
 
@@ -423,7 +505,7 @@ a2j_new(const char * jack_server_name)
 static
 void a2j_destroy(struct a2j * self)
 {
-  debug_log("midi: delete\n");
+  a2j_debug("midi: delete");
   a2j_detach(self);
 
   stream_close(self, PORT_OUTPUT);
@@ -443,13 +525,13 @@ int a2j_attach(struct a2j * self)
 {
   int err;
 
-  debug_log("midi: attach\n");
+  a2j_debug("midi: attach");
 
   if (self->seq)
     return -EALREADY;
 
   if ((err = snd_seq_open(&self->seq, "hw", SND_SEQ_OPEN_DUPLEX, 0)) < 0) {
-    error_log("failed to open alsa seq");
+    a2j_error("failed to open alsa seq");
     return err;
   }
   snd_seq_set_client_name(self->seq, "a2jmidid");
@@ -475,7 +557,7 @@ int a2j_attach(struct a2j * self)
 static
 int a2j_detach(struct a2j * self)
 {
-  debug_log("midi: detach\n");
+  a2j_debug("midi: detach");
 
   if (!self->seq)
     return -EALREADY;
@@ -505,7 +587,7 @@ int a2j_start(struct a2j *self)
 {
   int err;
 
-  debug_log("midi: start\n");
+  a2j_debug("midi: start");
 
   if (!self->seq)
     return -EBADF;
@@ -534,7 +616,7 @@ int a2j_start(struct a2j *self)
 static
 int a2j_stop(struct a2j * self)
 {
-  debug_log("midi: stop\n");
+  a2j_debug("midi: stop");
 
   if (!self->keep_walking)
     return -EALREADY;
@@ -570,7 +652,7 @@ int alsa_connect_from(struct a2j *self, int client, int port)
   snd_seq_port_subscribe_set_time_real(sub, 1);
 
   if ((err=snd_seq_subscribe_port(self->seq, sub)))
-    error_log("can't subscribe to %d:%d - %s\n", client, port, snd_strerror(err));
+    a2j_error("can't subscribe to %d:%d - %s", client, port, snd_strerror(err));
   return err;
 }
 
@@ -611,7 +693,7 @@ void port_setdead(port_hash_t hash, snd_seq_addr_t addr)
   if (port)
     port->is_dead = 1; // see jack_process_internal
   else
-    debug_log("port_setdead: not found (%d:%d)\n", addr.client, addr.port);
+    a2j_debug("port_setdead: not found (%d:%d)", addr.client, addr.port);
 }
 
 static
@@ -639,7 +721,7 @@ port_t* port_create(struct a2j *self, int type, snd_seq_addr_t addr, const snd_s
   err = snd_seq_client_info_malloc(&client_info_ptr);
   if (err != 0)
   {
-    error_log("Failed to allocate client info");
+    a2j_error("Failed to allocate client info");
     goto fail;
   }
 
@@ -648,12 +730,12 @@ port_t* port_create(struct a2j *self, int type, snd_seq_addr_t addr, const snd_s
   err = snd_seq_get_any_client_info(self->seq, client, client_info_ptr);
   if (err != 0)
   {
-    error_log("Failed to get client info");
+    a2j_error("Failed to get client info");
     goto fail_free_client_info;
   }
 
-  debug_log("client name: '%s'\n", snd_seq_client_info_get_name(client_info_ptr));
-  debug_log("port name: '%s'\n", snd_seq_port_info_get_name(info));
+  a2j_debug("client name: '%s'", snd_seq_client_info_get_name(client_info_ptr));
+  a2j_debug("port name: '%s'", snd_seq_port_info_get_name(info));
 
   port = calloc(1, sizeof(port_t));
   if (!port)
@@ -687,13 +769,13 @@ port_t* port_create(struct a2j *self, int type, snd_seq_addr_t addr, const snd_s
     err = snd_seq_connect_to(self->seq, self->port_id, port->remote.client, port->remote.port);
   if (err)
   {
-    info_log("port skipped: %s\n", port->name);
+    a2j_info("port skipped: %s", port->name);
     goto fail_free_port;
   }
 
   port->early_events = jack_ringbuffer_create(MAX_EVENT_SIZE*16);
 
-  info_log("port created: %s\n", port->name);
+  a2j_info("port created: %s", port->name);
   return port;
 
 fail_free_port:
@@ -716,10 +798,10 @@ void update_port_type(struct a2j *self, int type, snd_seq_addr_t addr, int caps,
   int alsa_mask = port_type[type].alsa_mask;
   port_t *port = port_get(str->ports, addr);
 
-  debug_log("update_port_type(%d:%d)\n", addr.client, addr.port);
+  a2j_debug("update_port_type(%d:%d)", addr.client, addr.port);
 
   if (port && (caps & alsa_mask)!=alsa_mask) {
-    debug_log("setdead: %s\n", port->name);
+    a2j_debug("setdead: %s", port->name);
     port->is_dead = 1;
   }
 
@@ -737,99 +819,99 @@ void update_port(struct a2j *self, snd_seq_addr_t addr, const snd_seq_port_info_
   unsigned int port_caps = snd_seq_port_info_get_capability(info);
   unsigned int port_type = snd_seq_port_info_get_type(info);
 
-  debug_log("port type: 0x%08X\n", port_type);
-  debug_log("port caps: 0x%08X\n", port_caps);
+  a2j_debug("port type: 0x%08X", port_type);
+  a2j_debug("port caps: 0x%08X", port_caps);
 
   if (port_type & SND_SEQ_PORT_TYPE_SPECIFIC)
   {
-    debug_log("SPECIFIC\n");
+    a2j_debug("SPECIFIC");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_GENERIC)
   {
-    debug_log("MIDI_GENERIC\n");
+    a2j_debug("MIDI_GENERIC");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_GM)
   {
-    debug_log("MIDI_GM\n");
+    a2j_debug("MIDI_GM");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_GS)
   {
-    debug_log("MIDI_GS\n");
+    a2j_debug("MIDI_GS");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_XG)
   {
-    debug_log("MIDI_XG\n");
+    a2j_debug("MIDI_XG");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_MT32)
   {
-    debug_log("MIDI_MT32\n");
+    a2j_debug("MIDI_MT32");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_MIDI_GM2)
   {
-    debug_log("MIDI_GM2\n");
+    a2j_debug("MIDI_GM2");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_SYNTH)
   {
-    debug_log("SYNTH\n");
+    a2j_debug("SYNTH");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_DIRECT_SAMPLE)
   {
-    debug_log("DIRECT_SAMPLE\n");
+    a2j_debug("DIRECT_SAMPLE");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_SAMPLE)
   {
-    debug_log("SAMPLE\n");
+    a2j_debug("SAMPLE");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_HARDWARE)
   {
-    debug_log("HARDWARE\n");
+    a2j_debug("HARDWARE");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_SOFTWARE)
   {
-    debug_log("SOFTWARE\n");
+    a2j_debug("SOFTWARE");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_SYNTHESIZER)
   {
-    debug_log("SYNTHESIZER\n");
+    a2j_debug("SYNTHESIZER");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_PORT)
   {
-    debug_log("PORT\n");
+    a2j_debug("PORT");
   }
 
   if (port_type & SND_SEQ_PORT_TYPE_APPLICATION)
   {
-    debug_log("APPLICATION\n");
+    a2j_debug("APPLICATION");
   }
 
   if (port_type == 0)
   {
-    debug_log("Ignoring port of type 0\n");
+    a2j_debug("Ignoring port of type 0");
     return;
   }
 
   if ((port_type & SND_SEQ_PORT_TYPE_HARDWARE) && !self->export_hw_ports)
   {
-    debug_log("Ignoring hardware port\n");
+    a2j_debug("Ignoring hardware port");
     return;
   }
 
   if (port_caps & SND_SEQ_PORT_CAP_NO_EXPORT)
   {
-    debug_log("Ignoring no-export port\n");
+    a2j_debug("Ignoring no-export port");
     return;
   }
 
@@ -844,7 +926,7 @@ void free_ports(struct a2j *self, jack_ringbuffer_t *ports)
   int sz;
   while ((sz = jack_ringbuffer_read(ports, (char*)&port, sizeof(port)))) {
     assert (sz == sizeof(port));
-    info_log("port deleted: %s\n", port->name);
+    a2j_info("port deleted: %s", port->name);
     port_free(self, port);
   }
 }
@@ -881,7 +963,7 @@ void* port_thread(void *arg)
     free_ports(self, self->port_del);
     update_ports(self);
   }
-  debug_log("port_thread exited\n");
+  a2j_debug("port_thread exited");
   return NULL;
 }
 
@@ -940,7 +1022,7 @@ void add_ports(stream_t *str)
 {
   port_t *port;
   while (jack_ringbuffer_read(str->new_ports, (char*)&port, sizeof(port))) {
-    debug_log("jack: inserted port %s\n", port->name);
+    a2j_debug("jack: inserted port %s", port->name);
     port_insert(str->ports, port);
   }
 }
@@ -966,7 +1048,7 @@ void jack_process_internal(struct a2j *self, struct process_info *info)
       if (!port->is_dead)
         (*process)(self, port, info);
       else if (jack_ringbuffer_write_space(self->port_del) >= sizeof(port)) {
-        debug_log("jack: removed port %s\n", port->name);
+        a2j_debug("jack: removed port %s", port->name);
         *pport = port->next;
         jack_ringbuffer_write(self->port_del, (char*)&port, sizeof(port));
         del++;
@@ -1001,7 +1083,7 @@ void do_jack_input(struct a2j *self, port_t *port, struct process_info *info)
       jack_ringbuffer_read(port->early_events, (char*)buf, ev.size);
     else
       jack_ringbuffer_read_advance(port->early_events, ev.size);
-    debug_log("input: it's time for %d bytes at %d\n", ev.size, time);
+    a2j_debug("input: it's time for %d bytes at %d", ev.size, time);
   }
 }
 
@@ -1016,11 +1098,11 @@ void port_event(struct a2j *self, snd_seq_event_t *ev)
   if (ev->type == SND_SEQ_EVENT_PORT_START || ev->type == SND_SEQ_EVENT_PORT_CHANGE) {
     assert (jack_ringbuffer_write_space(self->port_add) >= sizeof(addr));
 
-    debug_log("port_event: add/change %d:%d\n", addr.client, addr.port);
+    a2j_debug("port_event: add/change %d:%d", addr.client, addr.port);
     jack_ringbuffer_write(self->port_add, (char*)&addr, sizeof(addr));
     sem_post(&self->port_sem);
   } else if (ev->type == SND_SEQ_EVENT_PORT_EXIT) {
-    debug_log("port_event: del %d:%d\n", addr.client, addr.port);
+    a2j_debug("port_event: del %d:%d", addr.client, addr.port);
     port_setdead(self->stream[PORT_INPUT].ports, addr);
     port_setdead(self->stream[PORT_OUTPUT].ports, addr);
   }
@@ -1059,7 +1141,7 @@ void input_event(struct a2j *self, snd_seq_event_t *alsa_event, struct process_i
   frame_offset = (info->sample_rate * time_offset) / NSEC_PER_SEC;
   event_frame = (int64_t)info->cur_frames - info->period_start - frame_offset + info->nframes;
 
-  debug_log("input: %d bytes at event_frame=%d\n", (int)size, (int)event_frame);
+  a2j_debug("input: %d bytes at event_frame=%d", (int)size, (int)event_frame);
 
   if (event_frame >= info->nframes &&
       jack_ringbuffer_write_space(port->early_events) >= (sizeof(alsa_midi_event_t) + size)) {
@@ -1068,7 +1150,7 @@ void input_event(struct a2j *self, snd_seq_event_t *alsa_event, struct process_i
     ev.size = size;
     jack_ringbuffer_write(port->early_events, (char*)&ev, sizeof(ev));
     jack_ringbuffer_write(port->early_events, (char*)data, size);
-    debug_log("postponed to next frame +%d\n", (int) (event_frame - info->nframes)); 
+    a2j_debug("postponed to next frame +%d", (int) (event_frame - info->nframes)); 
     return;
   }
 
@@ -1143,7 +1225,7 @@ void do_jack_output(struct a2j *self, port_t *port, struct process_info* info)
     snd_seq_ev_schedule_real(&alsa_event, self->queue, 0, &out_rt);
 
     err = snd_seq_event_output(self->seq, &alsa_event);
-    debug_log("alsa_out: written %d bytes to %s at +%d: %d\n", jack_event.size, port->name, (int)frame_offset, err);
+    a2j_debug("alsa_out: written %d bytes to %s at +%d: %d", jack_event.size, port->name, (int)frame_offset, err);
   }
 }
 
