@@ -109,7 +109,7 @@ struct a2j
   int port_id;
   int queue;
 
-  int keep_walking;
+  bool keep_walking;
 
   pthread_t port_thread;
   sem_t port_sem;
@@ -247,18 +247,18 @@ void jack_freewheel(int starting, void *arg)
 }
 
 static
-int keep_walking = 1;
+int keep_walking = true;
 
 static
 void sigint_handler(int i)
 {
-  keep_walking = 0;
+  keep_walking = false;
 }
 
 static
 void jack_shutdown(void *arg)
 {
-  keep_walking = 0;
+  keep_walking = false;
 }
 
 static void help(const char* self)
@@ -603,10 +603,10 @@ int a2j_start(struct a2j *self)
   add_ports(&self->stream[PORT_INPUT]);
   add_ports(&self->stream[PORT_OUTPUT]);
 
-  self->keep_walking = 1;
+  self->keep_walking = true;
 
   if ((err = pthread_create(&self->port_thread, NULL, port_thread, self))) {
-    self->keep_walking = 0;
+    self->keep_walking = false;
     return -errno;
   }
 
@@ -623,7 +623,7 @@ int a2j_stop(struct a2j * self)
 
   snd_seq_disconnect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
 
-  self->keep_walking = 0;
+  self->keep_walking = false;
 
   sem_post(&self->port_sem);
   pthread_join(self->port_thread, NULL);
