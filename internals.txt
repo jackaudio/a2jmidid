@@ -24,3 +24,10 @@ ringbuffers:
  * new_ports
  * port_add (snd_seq_addr_t)
  * port_del (port_t *)
+
+
+= Call graph generation =
+  CFLAGS='-dr' ./waf configure
+  ./waf
+  make cg
+  file build/call_graph.*
