@@ -73,7 +73,7 @@ typedef struct port_t port_t;
 
 struct port_t {
   port_t *next;
-  int is_dead;
+  bool is_dead;
   char name[64];
   snd_seq_addr_t remote;
   jack_port_t * jack_port;
@@ -691,7 +691,7 @@ void port_setdead(port_hash_t hash, snd_seq_addr_t addr)
 {
   port_t *port = port_get(hash, addr);
   if (port)
-    port->is_dead = 1; // see jack_process_internal
+    port->is_dead = true; // see jack_process_internal
   else
     a2j_debug("port_setdead: not found (%d:%d)", addr.client, addr.port);
 }
@@ -802,7 +802,7 @@ void update_port_type(struct a2j *self, int type, snd_seq_addr_t addr, int caps,
 
   if (port && (caps & alsa_mask)!=alsa_mask) {
     a2j_debug("setdead: %s", port->name);
-    port->is_dead = 1;
+    port->is_dead = true;
   }
 
   if (!port && (caps & alsa_mask)==alsa_mask) {
