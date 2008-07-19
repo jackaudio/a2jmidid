@@ -355,7 +355,7 @@ a2j_jack_client_init(struct a2j * self, struct a2j_jack_client * client_ptr, con
   }
   else
   {
-    client_ptr->client = jack_client_new(name);
+    client_ptr->client = jack_client_open(name, JackNoStartServer, &status);
   }
 
   if (!client_ptr->client)
