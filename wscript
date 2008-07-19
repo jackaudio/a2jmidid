@@ -30,7 +30,7 @@ def configure(conf):
     conf.check_tool('compiler_cc')
 
     conf.check_pkg('alsa', mandatory=True)
-    conf.check_pkg('jack', mandatory=True)
+    conf.check_pkg('jack', vnum="0.109.0", mandatory=True)
     conf.check_pkg('dbus-1', mandatory=True, pkgvars=['session_bus_services_dir'])
 
     if Params.g_options.enable_pkg_config_dbus_service_dir:
@@ -61,3 +61,4 @@ def build(bld):
     prog = bld.create_obj('cc', 'program')
     prog.source = ['a2jmidid.c']
     prog.target = 'a2jmidid'
+    prog.uselib = 'ALSA JACK DBUS-1'
