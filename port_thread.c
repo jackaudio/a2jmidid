@@ -205,21 +205,3 @@ a2j_update_ports(
     }
   }
 }
-
-void *
-a2j_port_thread(
-  void * arg)
-{
-  struct a2j *self = arg;
-
-  while (self->keep_walking)
-  {
-    sem_wait(&self->port_sem);
-    a2j_free_ports(self->port_del);
-    a2j_update_ports(self);
-  }
-
-  a2j_debug("a2j_port_thread exited");
-
-  return NULL;
-}

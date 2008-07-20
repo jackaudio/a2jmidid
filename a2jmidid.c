@@ -36,6 +36,9 @@
 #include "log.h"
 
 struct a2j_port_type g_port_type[2];
+static bool g_keep_walking = true;
+static bool g_freewheeling = false;
+struct a2j * g_a2j = NULL;
 
 /*
  * =================== Input/output port handling =========================
@@ -240,7 +243,7 @@ a2j_read(
   snd_seq_event_t *event;
   struct a2j_process_info info;
 
-  if (!self->keep_walking)
+  if (g_freewheeling)
     return;
 
   a2j_set_process_info(&info, self, client_ptr, PORT_INPUT, nframes);
@@ -313,7 +316,7 @@ a2j_write(
 {
   struct a2j_process_info info;
 
-  if (!self->keep_walking)
+  if (g_freewheeling)
     return;
 
   a2j_set_process_info(&info, self, client_ptr, PORT_OUTPUT, nframes);
@@ -350,60 +353,6 @@ a2j_add_existing_ports(
   }
 }
 
-static
-int
-a2j_start(
-  struct a2j * self)
-{
-  int err;
-
-  a2j_debug("midi: start");
-
-  if (!self->seq)
-    return -EBADF;
-
-  if (self->keep_walking)
-    return -EALREADY;
-
-  snd_seq_connect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
-  snd_seq_drop_input(self->seq);
-
-  a2j_add_existing_ports(self);
-  a2j_update_ports(self);
-  a2j_add_ports(&self->stream[PORT_INPUT]);
-  a2j_add_ports(&self->stream[PORT_OUTPUT]);
-
-  self->keep_walking = true;
-
-  if ((err = pthread_create(&self->port_thread, NULL, a2j_port_thread, self))) {
-    self->keep_walking = false;
-    return -errno;
-  }
-
-  return 0;
-}
-
-static
-int
-a2j_stop(
-  struct a2j * self)
-{
-  a2j_debug("midi: stop");
-
-  if (!self->keep_walking)
-    return -EALREADY;
-
-  snd_seq_disconnect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
-
-  self->keep_walking = false;
-
-  sem_post(&self->port_sem);
-  pthread_join(self->port_thread, NULL);
-  self->port_thread = 0;
-
-  return 0;
-}
-
 ////////////////////////////////
 
 static
@@ -426,22 +375,16 @@ a2j_jack_freewheel(
   int starting,
   void * arg)
 {
-  struct a2j *midi = arg;
-  if (starting)
-    a2j_stop(midi);
-  else
-    a2j_start(midi);
+  g_freewheeling = starting;
 }
-
-static
-int keep_walking = true;
 
 static
 void
 a2j_sigint_handler(
   int i)
 {
-  keep_walking = false;
+  g_keep_walking = false;
+  sem_post(&g_a2j->port_sem);
 }
 
 static
@@ -449,7 +392,8 @@ void
 a2j_jack_shutdown(
   void * arg)
 {
-  keep_walking = false;
+  g_keep_walking = false;
+  sem_post(&g_a2j->port_sem);
 }
 
 bool
@@ -572,8 +516,11 @@ a2j_stream_close(
 
 struct a2j *
 a2j_new(
-  const char * jack_server_name)
+  const char * jack_server_name,
+  bool export_hw_ports)
 {
+  int err;
+
   struct a2j *self = calloc(1, sizeof(struct a2j));
   a2j_debug("midi: new");
   if (!self)
@@ -581,11 +528,7 @@ a2j_new(
 
   self->jack_server_name = jack_server_name;
 
-  if (!a2j_jack_client_init(self, self->jack_clients + 0, "a2j"))
-  {
-    free(self);
-    return NULL;
-  }
+  self->export_hw_ports = export_hw_ports;
 
   self->port_add = jack_ringbuffer_create(2*MAX_PORTS*sizeof(snd_seq_addr_t));
   self->port_del = jack_ringbuffer_create(2*MAX_PORTS*sizeof(struct a2j_port*));
@@ -594,25 +537,12 @@ a2j_new(
   a2j_stream_init(self, PORT_INPUT);
   a2j_stream_init(self, PORT_OUTPUT);
 
-  return self;
-}
-
-static
-int
-a2j_attach(
-  struct a2j * self)
-{
-  int err;
-
-  a2j_debug("midi: attach");
-
-  if (self->seq)
-    return -EALREADY;
-
   if ((err = snd_seq_open(&self->seq, "hw", SND_SEQ_OPEN_DUPLEX, 0)) < 0) {
     a2j_error("failed to open alsa seq");
-    return err;
+    free(self);
+    return NULL;
   }
+
   snd_seq_set_client_name(self->seq, "a2jmidid");
   self->port_id = snd_seq_create_simple_port(self->seq, "port",
     SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_WRITE
@@ -630,31 +560,22 @@ a2j_attach(
 
   snd_seq_nonblock(self->seq, 1);
 
-  return 0;
-}
+  snd_seq_connect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+  snd_seq_drop_input(self->seq);
 
-static
-int
-a2j_detach(
-  struct a2j * self)
-{
-  a2j_debug("midi: detach");
+  a2j_add_ports(&self->stream[PORT_INPUT]);
+  a2j_add_ports(&self->stream[PORT_OUTPUT]);
 
-  if (!self->seq)
-    return -EALREADY;
+  if (!a2j_jack_client_init(self, self->jack_clients + 0, "a2j"))
+  {
+    free(self);
+    return NULL;
+  }
 
-  a2j_stop(self);
+  a2j_add_existing_ports(self);
+  a2j_update_ports(self);
 
-  jack_ringbuffer_reset(self->port_add);
-  a2j_free_ports(self->port_del);
-
-  a2j_stream_detach(self->stream + PORT_INPUT);
-  a2j_stream_detach(self->stream + PORT_OUTPUT);
-
-  snd_seq_close(self->seq);
-  self->seq = NULL;
-
-  return 0;
+  return self;
 }
 
 static
@@ -663,7 +584,19 @@ a2j_destroy(
   struct a2j * self)
 {
   a2j_debug("midi: delete");
-  a2j_detach(self);
+
+  snd_seq_disconnect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+
+  jack_ringbuffer_reset(self->port_add);
+  a2j_free_ports(self->port_del);
+
+  a2j_stream_detach(self->stream + PORT_INPUT);
+  a2j_stream_detach(self->stream + PORT_OUTPUT);
+
+  a2j_jack_client_uninit(self->jack_clients + 0);
+
+  snd_seq_close(self->seq);
+  self->seq = NULL;
 
   a2j_stream_close(self, PORT_OUTPUT);
   a2j_stream_close(self, PORT_INPUT);
@@ -671,8 +604,6 @@ a2j_destroy(
   jack_ringbuffer_free(self->port_add);
   jack_ringbuffer_free(self->port_del);
   sem_close(&self->port_sem);
-
-  a2j_jack_client_uninit(self->jack_clients + 0);
 
   free(self);
 }
@@ -704,7 +635,6 @@ main(
   int argc,
   char *argv[])
 {
-  struct a2j *midi;
   const char* jack_server = NULL;
   bool export_hw_ports = false;
 
@@ -729,27 +659,23 @@ main(
     }
   }
 
-  midi = a2j_new(jack_server);
-
-  if (!midi)
+  g_a2j = a2j_new(jack_server, export_hw_ports);
+  if (g_a2j == NULL)
     goto fail1;
-
-  midi->export_hw_ports = export_hw_ports;
 
   signal(SIGINT, &a2j_sigint_handler);
   signal(SIGTERM, &a2j_sigint_handler);
 
-  a2j_attach(midi);
-  a2j_start(midi);
-
   printf("Started.\n");
 
-  while (keep_walking)
-    sleep(1);
+  while (g_keep_walking)
+  {
+    sem_wait(&g_a2j->port_sem);
+    a2j_free_ports(g_a2j->port_del);
+    a2j_update_ports(g_a2j);
+  }
 
-  a2j_stop(midi);
-  a2j_detach(midi);
-  a2j_destroy(midi);
+  a2j_destroy(g_a2j);
 
 fail1:
 

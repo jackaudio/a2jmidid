@@ -36,8 +36,4 @@ void
 a2j_free_ports(
   jack_ringbuffer_t * ports);
 
-void *
-a2j_port_thread(
-  void * arg);
-
 #endif /* #ifndef PORT_THREAD_H__1C6B5065_5556_4AC6_AA9F_44C32A9648C6__INCLUDED */

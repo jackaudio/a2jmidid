@@ -76,9 +76,6 @@ struct a2j
   int port_id;
   int queue;
 
-  bool keep_walking;
-
-  pthread_t port_thread;
   sem_t port_sem;
   jack_ringbuffer_t *port_add; // snd_seq_addr_t
   jack_ringbuffer_t *port_del; // struct a2j_port*
