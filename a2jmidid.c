@@ -533,15 +533,12 @@ a2j_stream_attach(
 static
 void
 a2j_stream_detach(
-  struct a2j * self,
-  int dir)
+  struct a2j_stream * stream_ptr)
 {
   struct a2j_port * port_ptr;
   struct a2j_port * next_port_ptr;
-  struct a2j_stream * stream_ptr;
   int i;
 
-  stream_ptr = &self->stream[dir];
   a2j_free_ports(stream_ptr->new_ports);
 
   // delete all ports from hash
@@ -652,8 +649,8 @@ a2j_detach(
   jack_ringbuffer_reset(self->port_add);
   a2j_free_ports(self->port_del);
 
-  a2j_stream_detach(self, PORT_INPUT);
-  a2j_stream_detach(self, PORT_OUTPUT);
+  a2j_stream_detach(self->stream + PORT_INPUT);
+  a2j_stream_detach(self->stream + PORT_OUTPUT);
 
   snd_seq_close(self->seq);
   self->seq = NULL;
