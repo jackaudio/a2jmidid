@@ -84,7 +84,8 @@ struct a2j_alsa_midi_event
   int size;
 };
 
-enum PortType { PORT_INPUT = 0, PORT_OUTPUT = 1 };
+#define PORT_INPUT    0
+#define PORT_OUTPUT   1
 
 typedef void (*port_jack_func)(struct a2j * self, struct a2j_port * port, struct a2j_process_info * info);
 
