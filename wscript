@@ -65,5 +65,6 @@ def build(bld):
         'port.c',
         'port_thread.c',
         ]
+    prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
     prog.uselib = 'ALSA JACK DBUS-1'
