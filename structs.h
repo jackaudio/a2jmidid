@@ -118,6 +118,6 @@ struct a2j_port_type
   port_jack_func jack_func;
 };
 
-static struct a2j_port_type g_port_type[2];
+extern struct a2j_port_type g_port_type[2];
 
 #endif /* #ifndef STRUCTS_H__FD2CC895_411F_4ADE_9200_50FE395EDB72__INCLUDED */
