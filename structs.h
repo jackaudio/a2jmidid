@@ -93,7 +93,6 @@ struct a2j_port_type
 {
   int alsa_mask;
   int jack_caps;
-  char name[4];
   port_jack_func jack_func;
 };
 
