@@ -534,21 +534,27 @@ a2j_stream_detach(
   struct a2j * self,
   int dir)
 {
-  struct a2j_stream *str = &self->stream[dir];
+  struct a2j_port * port_ptr;
+  struct a2j_port * next_port_ptr;
+  struct a2j_stream * stream_ptr;
   int i;
 
-  a2j_free_ports(self, str->new_ports);
+  stream_ptr = &self->stream[dir];
+  a2j_free_ports(self, stream_ptr->new_ports);
 
   // delete all ports from hash
-  for (i=0; i<PORT_HASH_SIZE; ++i) {
-    struct a2j_port *port = str->port_hash[i];
-    while (port) {
-      struct a2j_port *next = port->next;
-      a2j_info("port deleted: %s", port->name);
-      a2j_port_free(self, port);
-      port = next;
+  for (i = 0 ; i < PORT_HASH_SIZE ; i++)
+  {
+    port_ptr = stream_ptr->port_hash[i];
+    stream_ptr->port_hash[i] = NULL;
+
+    while (port_ptr != NULL)
+    {
+      next_port_ptr = port_ptr->next;
+      a2j_info("port deleted: %s", port_ptr->name);
+      a2j_port_free(self, port_ptr);
+      port_ptr = next_port_ptr;
     }
-    str->port_hash[i] = NULL;
   }
 }
 
