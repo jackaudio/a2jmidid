@@ -88,39 +88,57 @@ static
 void
 a2j_jack_process_internal(
   struct a2j * self,
-  struct a2j_process_info * info)
+  struct a2j_process_info * info_ptr)
 {
-  struct a2j_stream *str = &self->stream[info->dir];
-  port_jack_func process = g_port_type[info->dir].jack_func;
-  int i, del=0;
+  struct a2j_stream * stream_ptr;
+  port_jack_func process_func;
+  int i;
+  bool del;
+  struct a2j_port ** port_ptr_ptr;
+  struct a2j_port * port_ptr;
 
-  a2j_add_ports(str);
+  stream_ptr = &self->stream[info_ptr->dir];
+  process_func = g_port_type[info_ptr->dir].jack_func;
+  del = false;
+
+  a2j_add_ports(stream_ptr);
 
   // process ports
-  for (i=0; i<PORT_HASH_SIZE; ++i) {
-    struct a2j_port **pport = &str->port_hash[i];
-    while (*pport) {
-      struct a2j_port *port = *pport;
-      port->jack_buf = jack_port_get_buffer(port->jack_port, info->nframes);
-      if (info->dir == PORT_INPUT)
-        jack_midi_clear_buffer(port->jack_buf);
+  for (i = 0 ; i < PORT_HASH_SIZE ; i++)
+  {
+    port_ptr_ptr = &stream_ptr->port_hash[i];
+    while (*port_ptr_ptr != NULL)
+    {
+      port_ptr = *port_ptr_ptr;
 
-      if (!port->is_dead)
-        (*process)(self, port, info);
-      else if (jack_ringbuffer_write_space(self->port_del) >= sizeof(port)) {
-        a2j_debug("jack: removed port %s", port->name);
-        *pport = port->next;
-        jack_ringbuffer_write(self->port_del, (char*)&port, sizeof(port));
-        del++;
+      port_ptr->jack_buf = jack_port_get_buffer(port_ptr->jack_port, info_ptr->nframes);
+
+      if (info_ptr->dir == PORT_INPUT)
+      {
+        jack_midi_clear_buffer(port_ptr->jack_buf);
+      }
+
+      if (!port_ptr->is_dead)
+      {
+        (*process_func)(self, port_ptr, info_ptr);
+      }
+      else if (jack_ringbuffer_write_space(self->port_del) >= sizeof(port_ptr))
+      {
+        a2j_debug("jack: removed port %s", port_ptr->name);
+        *port_ptr_ptr = port_ptr->next;
+        jack_ringbuffer_write(self->port_del, (char*)&port_ptr, sizeof(port_ptr));
+        del = true;
         continue;
       }
 
-      pport = &port->next;
+      port_ptr_ptr = &port_ptr->next;
     }
   }
 
   if (del)
+  {
     sem_post(&self->port_sem);
+  }
 }
 
 /*
