@@ -71,7 +71,7 @@ a2j_port_hash(
 
 struct a2j_port *
 a2j_port_get(
-  port_hash_t hash,
+  a2j_port_hash_t hash,
   snd_seq_addr_t addr)
 {
   struct a2j_port **pport = &hash[a2j_port_hash(addr)];
@@ -86,7 +86,7 @@ a2j_port_get(
 
 void
 a2j_port_insert(
-  port_hash_t hash,
+  a2j_port_hash_t hash,
   struct a2j_port * port)
 {
   struct a2j_port **pport = &hash[a2j_port_hash(port->remote)];
@@ -96,7 +96,7 @@ a2j_port_insert(
 
 void
 a2j_port_setdead(
-  port_hash_t hash,
+  a2j_port_hash_t hash,
   snd_seq_addr_t addr)
 {
   struct a2j_port *port = a2j_port_get(hash, addr);

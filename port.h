@@ -25,7 +25,7 @@
 #define PORT_HASH_BITS 4
 #define PORT_HASH_SIZE (1 << PORT_HASH_BITS)
 
-typedef struct a2j_port* port_hash_t[PORT_HASH_SIZE];
+typedef struct a2j_port * a2j_port_hash_t[PORT_HASH_SIZE];
 
 struct a2j_port
 {
@@ -50,17 +50,17 @@ a2j_port_create(
 
 void
 a2j_port_insert(
-  port_hash_t hash,
+  a2j_port_hash_t hash,
   struct a2j_port * port);
 
 struct a2j_port *
 a2j_port_get(
-  port_hash_t hash,
+  a2j_port_hash_t hash,
   snd_seq_addr_t addr);
 
 void
 a2j_port_setdead(
-  port_hash_t hash,
+  a2j_port_hash_t hash,
   snd_seq_addr_t addr);
 
 void
