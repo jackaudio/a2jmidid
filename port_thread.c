@@ -26,9 +26,10 @@
 #include <jack/ringbuffer.h>
 
 #include "structs.h"
-#include "port_thread.h"
 #include "port.h"
+#include "port_hash.h"
 #include "log.h"
+#include "port_thread.h"
 
 /*
  * ==================== Port add/del handling thread ==============================

@@ -33,6 +33,7 @@
 #include "structs.h"
 #include "port.h"
 #include "port_thread.h"
+#include "port_hash.h"
 #include "log.h"
 
 struct a2j_port_type g_port_type[2];

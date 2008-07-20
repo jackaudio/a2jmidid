@@ -19,23 +19,17 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
-#ifndef PORT_H__757ADD0F_5E53_41F7_8B7F_8119C5E8A9F1__INCLUDED
-#define PORT_H__757ADD0F_5E53_41F7_8B7F_8119C5E8A9F1__INCLUDED
-
-struct a2j_port *
-a2j_port_create(
-  struct a2j * self,
-  int type,
-  snd_seq_addr_t addr,
-  const snd_seq_port_info_t * info);
+#ifndef PORT_HASH_H__A44CBCD6_E075_49CB_8F73_DF9772511D55__INCLUDED
+#define PORT_HASH_H__A44CBCD6_E075_49CB_8F73_DF9772511D55__INCLUDED
 
 void
-a2j_port_setdead(
+a2j_port_insert(
+  a2j_port_hash_t hash,
+  struct a2j_port * port);
+
+struct a2j_port *
+a2j_port_get(
   a2j_port_hash_t hash,
   snd_seq_addr_t addr);
 
-void
-a2j_port_free(
-  struct a2j_port * port);
-
-#endif /* #ifndef PORT_H__757ADD0F_5E53_41F7_8B7F_8119C5E8A9F1__INCLUDED */
+#endif /* #ifndef PORT_HASH_H__A44CBCD6_E075_49CB_8F73_DF9772511D55__INCLUDED */

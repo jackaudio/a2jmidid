@@ -27,8 +27,9 @@
 #include <jack/ringbuffer.h>
 
 #include "structs.h"
-#include "port.h"
+#include "port_hash.h"
 #include "log.h"
+#include "port.h"
 
 static
 int
@@ -56,42 +57,6 @@ a2j_alsa_connect_from(
   if ((err=snd_seq_subscribe_port(self->seq, sub)))
     a2j_error("can't subscribe to %d:%d - %s", client, port, snd_strerror(err));
   return err;
-}
-
-/*
- * ==================== Port routines =============================
- */
-static inline
-int
-a2j_port_hash(
-  snd_seq_addr_t addr)
-{
-  return (addr.client + addr.port) % PORT_HASH_SIZE;
-}
-
-struct a2j_port *
-a2j_port_get(
-  a2j_port_hash_t hash,
-  snd_seq_addr_t addr)
-{
-  struct a2j_port **pport = &hash[a2j_port_hash(addr)];
-  while (*pport) {
-    struct a2j_port *port = *pport;
-    if (port->remote.client == addr.client && port->remote.port == addr.port)
-      return port;
-    pport = &port->next;
-  }
-  return NULL;
-}
-
-void
-a2j_port_insert(
-  a2j_port_hash_t hash,
-  struct a2j_port * port)
-{
-  struct a2j_port **pport = &hash[a2j_port_hash(port->remote)];
-  port->next = *pport;
-  *pport = port;
 }
 
 void

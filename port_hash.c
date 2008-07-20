@@ -19,23 +19,44 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
-#ifndef PORT_H__757ADD0F_5E53_41F7_8B7F_8119C5E8A9F1__INCLUDED
-#define PORT_H__757ADD0F_5E53_41F7_8B7F_8119C5E8A9F1__INCLUDED
+#include <stdbool.h>
+#include <semaphore.h>
+#include <alsa/asoundlib.h>
+#include <jack/jack.h>
+#include <jack/ringbuffer.h>
+
+#include "structs.h"
+#include "port_hash.h"
+
+static inline
+int
+a2j_port_hash(
+  snd_seq_addr_t addr)
+{
+  return (addr.client + addr.port) % PORT_HASH_SIZE;
+}
 
 struct a2j_port *
-a2j_port_create(
-  struct a2j * self,
-  int type,
-  snd_seq_addr_t addr,
-  const snd_seq_port_info_t * info);
-
-void
-a2j_port_setdead(
+a2j_port_get(
   a2j_port_hash_t hash,
-  snd_seq_addr_t addr);
+  snd_seq_addr_t addr)
+{
+  struct a2j_port **pport = &hash[a2j_port_hash(addr)];
+  while (*pport) {
+    struct a2j_port *port = *pport;
+    if (port->remote.client == addr.client && port->remote.port == addr.port)
+      return port;
+    pport = &port->next;
+  }
+  return NULL;
+}
 
 void
-a2j_port_free(
-  struct a2j_port * port);
-
-#endif /* #ifndef PORT_H__757ADD0F_5E53_41F7_8B7F_8119C5E8A9F1__INCLUDED */
+a2j_port_insert(
+  a2j_port_hash_t hash,
+  struct a2j_port * port)
+{
+  struct a2j_port **pport = &hash[a2j_port_hash(port->remote)];
+  port->next = *pport;
+  *pport = port;
+}

@@ -64,6 +64,7 @@ def build(bld):
         'log.c',
         'port.c',
         'port_thread.c',
+        'port_hash.c',
         ]
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
