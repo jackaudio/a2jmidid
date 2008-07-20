@@ -68,7 +68,7 @@ struct a2j
 
 #define NSEC_PER_SEC ((int64_t)1000*1000*1000)
 
-struct process_info
+struct a2j_process_info
 {
   int dir;
   jack_nframes_t nframes;
@@ -86,7 +86,7 @@ struct a2j_alsa_midi_event
 
 enum PortType { PORT_INPUT = 0, PORT_OUTPUT = 1 };
 
-typedef void (*port_jack_func)(struct a2j *self, struct a2j_port *port,struct process_info* info);
+typedef void (*port_jack_func)(struct a2j * self, struct a2j_port * port, struct a2j_process_info * info);
 
 struct a2j_port_type
 {

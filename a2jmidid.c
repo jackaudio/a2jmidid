@@ -41,7 +41,7 @@
 static
 void
 a2j_set_process_info(
-  struct process_info * info,
+  struct a2j_process_info * info,
   struct a2j * self,
   struct a2j_jack_client * client_ptr,
   int dir,
@@ -82,7 +82,7 @@ static
 void
 a2j_jack_process_internal(
   struct a2j * self,
-  struct process_info * info)
+  struct a2j_process_info * info)
 {
   struct a2j_stream *str = &self->stream[info->dir];
   port_jack_func process = g_port_type[info->dir].jack_func;
@@ -125,7 +125,7 @@ void
 a2j_do_jack_input(
   struct a2j * self,
   struct a2j_port * port,
-  struct process_info * info)
+  struct a2j_process_info * info)
 {
   // process port->early_events
   struct a2j_alsa_midi_event ev;
@@ -174,7 +174,7 @@ void
 a2j_input_event(
   struct a2j * self,
   snd_seq_event_t * alsa_event,
-  struct process_info*  info)
+  struct a2j_process_info * info)
 {
   jack_midi_data_t data[MAX_EVENT_SIZE];
   struct a2j_stream *str = &self->stream[PORT_INPUT];
@@ -236,7 +236,7 @@ a2j_read(
 {
   int res;
   snd_seq_event_t *event;
-  struct process_info info;
+  struct a2j_process_info info;
 
   if (!self->keep_walking)
     return;
@@ -261,7 +261,7 @@ void
 a2j_do_jack_output(
   struct a2j * self,
   struct a2j_port * port,
-  struct process_info * info)
+  struct a2j_process_info * info)
 {
   struct a2j_stream *str = &self->stream[info->dir];
   int nevents = jack_midi_get_event_count(port->jack_buf);
@@ -309,7 +309,7 @@ a2j_write(
   struct a2j_jack_client * client_ptr,
   jack_nframes_t nframes)
 {
-  struct process_info info;
+  struct a2j_process_info info;
 
   if (!self->keep_walking)
     return;
