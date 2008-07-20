@@ -43,22 +43,30 @@ a2j_update_port_type(
   int caps,
   const snd_seq_port_info_t * info)
 {
-  struct a2j_stream *str = &self->stream[type];
-  int alsa_mask = g_port_type[type].alsa_mask;
-  struct a2j_port *port = a2j_port_get(str->port_hash, addr);
+  struct a2j_stream * stream_ptr;
+  int alsa_mask;
+  struct a2j_port * port_ptr;
 
   a2j_debug("update_port_type(%d:%d)", addr.client, addr.port);
 
-  if (port && (caps & alsa_mask)!=alsa_mask) {
-    a2j_debug("setdead: %s", port->name);
-    port->is_dead = true;
+  stream_ptr = &self->stream[type];
+  alsa_mask = g_port_type[type].alsa_mask;
+  port_ptr = a2j_port_get(stream_ptr->port_hash, addr);
+
+  if (port_ptr != NULL && (caps & alsa_mask) != alsa_mask)
+  {
+    a2j_debug("setdead: %s", port_ptr->name);
+    port_ptr->is_dead = true;
   }
 
-  if (!port && (caps & alsa_mask)==alsa_mask) {
-    assert (jack_ringbuffer_write_space(str->new_ports) >= sizeof(port));
-    port = a2j_port_create(self, type, addr, info);
-    if (port)
-      jack_ringbuffer_write(str->new_ports, (char*)&port, sizeof(port));
+  if (port_ptr == NULL && (caps & alsa_mask) == alsa_mask)
+  {
+    assert(jack_ringbuffer_write_space(stream_ptr->new_ports) >= sizeof(port_ptr));
+    port_ptr = a2j_port_create(self, type, addr, info);
+    if (port_ptr != NULL)
+    {
+      jack_ringbuffer_write(stream_ptr->new_ports, (char *)&port_ptr, sizeof(port_ptr));
+    }
   }
 }
 
