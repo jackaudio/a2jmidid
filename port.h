@@ -46,7 +46,6 @@ a2j_port_setdead(
 
 void
 a2j_port_free(
-  struct a2j * self,
   struct a2j_port * port);
 
 #endif /* #ifndef PORT_H__757ADD0F_5E53_41F7_8B7F_8119C5E8A9F1__INCLUDED */

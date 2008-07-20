@@ -108,7 +108,6 @@ a2j_port_setdead(
 
 void
 a2j_port_free(
-  struct a2j * self,
   struct a2j_port * port)
 {
   //snd_seq_disconnect_from(self->seq, self->port_id, port->remote.client, port->remote.port);
@@ -116,7 +115,7 @@ a2j_port_free(
   if (port->early_events)
     jack_ringbuffer_free(port->early_events);
   if (port->jack_port != JACK_INVALID_PORT)
-    jack_port_unregister(self->jack_clients[0].client, port->jack_port);
+    jack_port_unregister(port->a2j_ptr->jack_clients[0].client, port->jack_port);
 
   free(port);
 }
@@ -197,7 +196,7 @@ a2j_port_create(
   return port;
 
 fail_free_port:
-  a2j_port_free(self, port);
+  a2j_port_free(port);
 
 fail_free_client_info:
   snd_seq_client_info_free(client_info_ptr);

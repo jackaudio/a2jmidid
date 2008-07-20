@@ -552,7 +552,7 @@ a2j_stream_detach(
     {
       next_port_ptr = port_ptr->next;
       a2j_info("port deleted: %s", port_ptr->name);
-      a2j_port_free(self, port_ptr);
+      a2j_port_free(port_ptr);
       port_ptr = next_port_ptr;
     }
   }

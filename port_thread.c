@@ -180,7 +180,7 @@ a2j_free_ports(
   while ((sz = jack_ringbuffer_read(ports, (char*)&port, sizeof(port)))) {
     assert (sz == sizeof(port));
     a2j_info("port deleted: %s", port->name);
-    a2j_port_free(self, port);
+    a2j_port_free(port);
   }
 }
 
