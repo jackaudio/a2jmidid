@@ -33,9 +33,12 @@
 
 typedef struct a2j_port * a2j_port_hash_t[PORT_HASH_SIZE];
 
+struct a2j;
+
 struct a2j_port
 {
   struct a2j_port * next;
+  struct a2j * a2j_ptr;
   bool is_dead;
   char name[64];
   snd_seq_addr_t remote;

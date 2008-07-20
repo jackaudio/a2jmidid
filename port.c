@@ -159,6 +159,8 @@ a2j_port_create(
     goto fail_free_client_info;
   }
 
+  port->a2j_ptr = self;
+
   port->jack_port = JACK_INVALID_PORT;
   port->remote = addr;
 
