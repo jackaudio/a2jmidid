@@ -22,25 +22,6 @@
 #ifndef PORT_H__757ADD0F_5E53_41F7_8B7F_8119C5E8A9F1__INCLUDED
 #define PORT_H__757ADD0F_5E53_41F7_8B7F_8119C5E8A9F1__INCLUDED
 
-#define PORT_HASH_BITS 4
-#define PORT_HASH_SIZE (1 << PORT_HASH_BITS)
-
-typedef struct a2j_port * a2j_port_hash_t[PORT_HASH_SIZE];
-
-struct a2j_port
-{
-  struct a2j_port * next;
-  bool is_dead;
-  char name[64];
-  snd_seq_addr_t remote;
-  jack_port_t * jack_port;
-
-  jack_ringbuffer_t * early_events; // alsa_midi_event_t + data
-  int64_t last_out_time;
-
-  void * jack_buf;
-};
-
 struct a2j_port *
 a2j_port_create(
   struct a2j * self,
