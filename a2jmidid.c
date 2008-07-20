@@ -525,8 +525,7 @@ a2j_stream_init(
 static
 void
 a2j_stream_attach(
-  struct a2j * self,
-  int dir)
+  struct a2j_stream * stream_ptr)
 {
 }
 
@@ -626,8 +625,8 @@ a2j_attach(
     self->queue = snd_seq_alloc_queue(self->seq);
     snd_seq_start_queue(self->seq, self->queue, 0); 
 
-  a2j_stream_attach(self, PORT_INPUT);
-  a2j_stream_attach(self, PORT_OUTPUT);
+  a2j_stream_attach(self->stream + PORT_INPUT);
+  a2j_stream_attach(self->stream + PORT_OUTPUT);
 
   snd_seq_nonblock(self->seq, 1);
 
