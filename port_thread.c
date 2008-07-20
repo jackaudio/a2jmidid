@@ -44,7 +44,7 @@ a2j_update_port_type(
 {
   struct a2j_stream *str = &self->stream[type];
   int alsa_mask = g_port_type[type].alsa_mask;
-  struct a2j_port *port = a2j_port_get(str->ports, addr);
+  struct a2j_port *port = a2j_port_get(str->port_hash, addr);
 
   a2j_debug("update_port_type(%d:%d)", addr.client, addr.port);
 

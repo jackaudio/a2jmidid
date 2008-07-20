@@ -53,7 +53,7 @@ struct a2j_stream
 
   jack_ringbuffer_t *new_ports;
 
-  struct a2j_port *ports[MAX_PORTS];
+  a2j_port_hash_t port_hash;
 };
 
 struct a2j_jack_client

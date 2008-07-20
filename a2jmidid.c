@@ -74,7 +74,7 @@ a2j_add_ports(
   struct a2j_port *port;
   while (jack_ringbuffer_read(str->new_ports, (char*)&port, sizeof(port))) {
     a2j_debug("jack: inserted port %s", port->name);
-    a2j_port_insert(str->ports, port);
+    a2j_port_insert(str->port_hash, port);
   }
 }
 
@@ -92,7 +92,7 @@ a2j_jack_process_internal(
 
   // process ports
   for (i=0; i<PORT_HASH_SIZE; ++i) {
-    struct a2j_port **pport = &str->ports[i];
+    struct a2j_port **pport = &str->port_hash[i];
     while (*pport) {
       struct a2j_port *port = *pport;
       port->jack_buf = jack_port_get_buffer(port->jack_port, info->nframes);
@@ -164,8 +164,8 @@ a2j_port_event(
     sem_post(&self->port_sem);
   } else if (ev->type == SND_SEQ_EVENT_PORT_EXIT) {
     a2j_debug("port_event: del %d:%d", addr.client, addr.port);
-    a2j_port_setdead(self->stream[PORT_INPUT].ports, addr);
-    a2j_port_setdead(self->stream[PORT_OUTPUT].ports, addr);
+    a2j_port_setdead(self->stream[PORT_INPUT].port_hash, addr);
+    a2j_port_setdead(self->stream[PORT_OUTPUT].port_hash, addr);
   }
 }
 
@@ -183,7 +183,7 @@ a2j_input_event(
   int64_t frame_offset, event_frame;
   struct a2j_port *port;
 
-  port = a2j_port_get(str->ports, alsa_event->source);
+  port = a2j_port_get(str->port_hash, alsa_event->source);
   if (!port)
     return;
 
@@ -541,14 +541,14 @@ a2j_stream_detach(
 
   // delete all ports from hash
   for (i=0; i<PORT_HASH_SIZE; ++i) {
-    struct a2j_port *port = str->ports[i];
+    struct a2j_port *port = str->port_hash[i];
     while (port) {
       struct a2j_port *next = port->next;
       a2j_info("port deleted: %s", port->name);
       a2j_port_free(self, port);
       port = next;
     }
-    str->ports[i] = NULL;
+    str->port_hash[i] = NULL;
   }
 }
 
