@@ -172,7 +172,6 @@ a2j_update_port(
 
 void
 a2j_free_ports(
-  struct a2j * self,
   jack_ringbuffer_t * ports)
 {
   struct a2j_port *port;
@@ -216,7 +215,7 @@ a2j_port_thread(
   while (self->keep_walking)
   {
     sem_wait(&self->port_sem);
-    a2j_free_ports(self, self->port_del);
+    a2j_free_ports(self->port_del);
     a2j_update_ports(self);
   }
 

@@ -34,7 +34,6 @@ a2j_update_ports(
 
 void
 a2j_free_ports(
-  struct a2j * self,
   jack_ringbuffer_t * ports);
 
 void *

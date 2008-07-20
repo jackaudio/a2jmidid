@@ -542,7 +542,7 @@ a2j_stream_detach(
   int i;
 
   stream_ptr = &self->stream[dir];
-  a2j_free_ports(self, stream_ptr->new_ports);
+  a2j_free_ports(stream_ptr->new_ports);
 
   // delete all ports from hash
   for (i = 0 ; i < PORT_HASH_SIZE ; i++)
@@ -650,7 +650,7 @@ a2j_detach(
   a2j_stop(self);
 
   jack_ringbuffer_reset(self->port_add);
-  a2j_free_ports(self, self->port_del);
+  a2j_free_ports(self->port_del);
 
   a2j_stream_detach(self, PORT_INPUT);
   a2j_stream_detach(self, PORT_OUTPUT);
