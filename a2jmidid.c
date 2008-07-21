@@ -331,6 +331,8 @@ a2j_add_existing_ports(
 
 ////////////////////////////////
 
+#define a2j_ptr ((struct a2j *)arg)
+
 static
 int
 a2j_jack_process(
@@ -344,19 +346,19 @@ a2j_jack_process(
   if (g_freewheeling)
     return 0;
 
-  a2j_set_process_info(&info, g_a2j, PORT_INPUT, nframes);
-  a2j_jack_process_internal(g_a2j, &info); 
+  a2j_set_process_info(&info, a2j_ptr, PORT_INPUT, nframes);
+  a2j_jack_process_internal(a2j_ptr, &info); 
 
-  while ((res = snd_seq_event_input(g_a2j->seq, &event))>0) {
+  while ((res = snd_seq_event_input(a2j_ptr->seq, &event))>0) {
     if (event->source.client == SND_SEQ_CLIENT_SYSTEM)
-      a2j_port_event(g_a2j, event);
+      a2j_port_event(a2j_ptr, event);
     else
-      a2j_input_event(g_a2j, event, &info);
+      a2j_input_event(a2j_ptr, event, &info);
   }
 
-  a2j_set_process_info(&info, g_a2j, PORT_OUTPUT, nframes);
-  a2j_jack_process_internal(g_a2j, &info);
-  snd_seq_drain_output(g_a2j->seq);
+  a2j_set_process_info(&info, a2j_ptr, PORT_OUTPUT, nframes);
+  a2j_jack_process_internal(a2j_ptr, &info);
+  snd_seq_drain_output(a2j_ptr->seq);
 
   return 0;
 }
@@ -372,6 +374,17 @@ a2j_jack_freewheel(
 
 static
 void
+a2j_jack_shutdown(
+  void * arg)
+{
+  g_keep_walking = false;
+  sem_post(&a2j_ptr->port_sem);
+}
+
+#undef a2j_ptr
+
+static
+void
 a2j_sigint_handler(
   int i)
 {
@@ -379,17 +392,9 @@ a2j_sigint_handler(
   sem_post(&g_a2j->port_sem);
 }
 
-static
-void
-a2j_jack_shutdown(
-  void * arg)
-{
-  g_keep_walking = false;
-  sem_post(&g_a2j->port_sem);
-}
-
-jack_client_t *
+bool
 a2j_jack_client_init(
+  struct a2j * a2j_ptr,
   const char * client_name,
   const char * server_name)
 {
@@ -412,17 +417,21 @@ a2j_jack_client_init(
     goto fail;
   }
 
-  jack_set_process_callback(jack_client, a2j_jack_process, NULL);
+  jack_set_process_callback(jack_client, a2j_jack_process, a2j_ptr);
   jack_set_freewheel_callback(jack_client, a2j_jack_freewheel, NULL);
   jack_on_shutdown(jack_client, a2j_jack_shutdown, NULL);
+
+
+  a2j_ptr->jack_client = jack_client;
 
   if (jack_activate(jack_client))
   {
     a2j_error("can't activate jack client");
+    a2j_ptr->jack_client = NULL;
     goto fail_close;
   }
 
-  return jack_client;
+  return true;
 
 fail_close:
   error = jack_client_close(jack_client);
@@ -432,7 +441,7 @@ fail_close:
   }
 
 fail:
-  return NULL;
+  return false;
 }
 
 void
@@ -553,7 +562,7 @@ a2j_new(
   a2j_add_ports(&self->stream[PORT_INPUT]);
   a2j_add_ports(&self->stream[PORT_OUTPUT]);
 
-  if (!a2j_jack_client_init("a2j", jack_server_name))
+  if (!a2j_jack_client_init(self, "a2j", jack_server_name))
   {
     free(self);
     return NULL;
