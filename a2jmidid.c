@@ -36,6 +36,8 @@
 #include "port_hash.h"
 #include "log.h"
 
+#define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
+
 struct a2j_port_type g_port_type[2];
 static bool g_keep_walking = true;
 static bool g_freewheeling = false;
@@ -92,13 +94,11 @@ a2j_jack_process_internal(
   struct a2j_stream * stream_ptr;
   port_jack_func process_func;
   int i;
-  bool del;
   struct a2j_port ** port_ptr_ptr;
   struct a2j_port * port_ptr;
 
   stream_ptr = &self->stream[info_ptr->dir];
   process_func = g_port_type[info_ptr->dir].jack_func;
-  del = false;
 
   a2j_add_ports(stream_ptr);
 
@@ -126,17 +126,11 @@ a2j_jack_process_internal(
         a2j_debug("jack: removed port %s", port_ptr->name);
         *port_ptr_ptr = port_ptr->next;
         jack_ringbuffer_write(self->port_del, (char*)&port_ptr, sizeof(port_ptr));
-        del = true;
         continue;
       }
 
       port_ptr_ptr = &port_ptr->next;
     }
-  }
-
-  if (del)
-  {
-    sem_post(&self->port_sem);
   }
 }
 
@@ -184,7 +178,6 @@ a2j_port_event(
 
     a2j_debug("port_event: add/change %d:%d", addr.client, addr.port);
     jack_ringbuffer_write(self->port_add, (char*)&addr, sizeof(addr));
-    sem_post(&self->port_sem);
   } else if (ev->type == SND_SEQ_EVENT_PORT_EXIT) {
     a2j_debug("port_event: del %d:%d", addr.client, addr.port);
     a2j_port_setdead(self->stream[PORT_INPUT].port_hash, addr);
@@ -378,7 +371,6 @@ a2j_jack_shutdown(
   void * arg)
 {
   g_keep_walking = false;
-  sem_post(&a2j_ptr->port_sem);
 }
 
 #undef a2j_ptr
@@ -389,7 +381,6 @@ a2j_sigint_handler(
   int i)
 {
   g_keep_walking = false;
-  sem_post(&g_a2j->port_sem);
 }
 
 bool
@@ -528,7 +519,6 @@ a2j_new(
 
   self->port_add = jack_ringbuffer_create(2*MAX_PORTS*sizeof(snd_seq_addr_t));
   self->port_del = jack_ringbuffer_create(2*MAX_PORTS*sizeof(struct a2j_port*));
-  sem_init(&self->port_sem, 0, 0);
 
   a2j_stream_init(self, PORT_INPUT);
   a2j_stream_init(self, PORT_OUTPUT);
@@ -599,7 +589,6 @@ a2j_destroy(
 
   jack_ringbuffer_free(self->port_add);
   jack_ringbuffer_free(self->port_del);
-  sem_close(&self->port_sem);
 
   free(self);
 }
@@ -666,7 +655,7 @@ main(
 
   while (g_keep_walking)
   {
-    sem_wait(&g_a2j->port_sem);
+    usleep(MAIN_LOOP_SLEEP_INTERVAL * 1000);
     a2j_free_ports(g_a2j->port_del);
     a2j_update_ports(g_a2j);
   }
