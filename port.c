@@ -80,7 +80,7 @@ a2j_port_free(
   if (port->early_events)
     jack_ringbuffer_free(port->early_events);
   if (port->jack_port != JACK_INVALID_PORT)
-    jack_port_unregister(port->a2j_ptr->jack_clients[0].client, port->jack_port);
+    jack_port_unregister(port->a2j_ptr->jack_client, port->jack_port);
 
   free(port);
 }
@@ -141,7 +141,7 @@ a2j_port_create(
     if (!isalnum(*c) && *c != '(' && *c != ')' && *c != ':')
       *c = ' ';
 
-  port->jack_port = jack_port_register(self->jack_clients[0].client, port->name, JACK_DEFAULT_MIDI_TYPE, g_port_type[type].jack_caps, 0);
+  port->jack_port = jack_port_register(self->jack_client, port->name, JACK_DEFAULT_MIDI_TYPE, g_port_type[type].jack_caps, 0);
   if (port->jack_port == JACK_INVALID_PORT)
     goto fail_free_port;
 

@@ -26,7 +26,6 @@
 
 #define MAX_PORTS  64
 #define MAX_EVENT_SIZE 1024
-#define MAX_CLIENTS 64
 
 #define PORT_HASH_BITS 4
 #define PORT_HASH_SIZE (1 << PORT_HASH_BITS)
@@ -59,17 +58,9 @@ struct a2j_stream
   a2j_port_hash_t port_hash;
 };
 
-struct a2j_jack_client
-{
-  char name[64];
-  jack_client_t * client;
-  struct a2j * a2j_ptr;
-};
-
 struct a2j
 {
-  const char * jack_server_name;
-  struct a2j_jack_client jack_clients[MAX_CLIENTS];
+  jack_client_t * jack_client;
 
   snd_seq_t *seq;
   int client_id;

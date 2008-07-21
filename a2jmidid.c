@@ -49,7 +49,6 @@ void
 a2j_set_process_info(
   struct a2j_process_info * info,
   struct a2j * self,
-  struct a2j_jack_client * client_ptr,
   int dir,
   jack_nframes_t nframes)
 {
@@ -60,11 +59,11 @@ a2j_set_process_info(
 
   info->dir = dir;
 
-  info->period_start = jack_last_frame_time(client_ptr->client);
+  info->period_start = jack_last_frame_time(self->jack_client);
   info->nframes = nframes;
-  info->sample_rate = jack_get_sample_rate(client_ptr->client);
+  info->sample_rate = jack_get_sample_rate(self->jack_client);
 
-  info->cur_frames = jack_frame_time(client_ptr->client);
+  info->cur_frames = jack_frame_time(self->jack_client);
 
   // immediately get alsa'a real time (uhh, why everybody has their on 'real' time)
   snd_seq_get_queue_status(self->seq, self->queue, status);
@@ -251,31 +250,6 @@ a2j_input_event(
   jack_midi_event_write(port->jack_buf, event_frame, data, size);
 }
 
-static
-void
-a2j_read(
-  struct a2j * self,
-  struct a2j_jack_client * client_ptr,
-  jack_nframes_t nframes)
-{
-  int res;
-  snd_seq_event_t *event;
-  struct a2j_process_info info;
-
-  if (g_freewheeling)
-    return;
-
-  a2j_set_process_info(&info, self, client_ptr, PORT_INPUT, nframes);
-  a2j_jack_process_internal(self, &info); 
-
-  while ((res = snd_seq_event_input(self->seq, &event))>0) {
-    if (event->source.client == SND_SEQ_CLIENT_SYSTEM)
-      a2j_port_event(self, event);
-    else
-      a2j_input_event(self, event, &info);
-  }
-}
-
 /*
  * ============================ Output ==============================
  */
@@ -326,23 +300,6 @@ a2j_do_jack_output(
   }
 }
 
-static
-void
-a2j_write(
-  struct a2j * self,
-  struct a2j_jack_client * client_ptr,
-  jack_nframes_t nframes)
-{
-  struct a2j_process_info info;
-
-  if (g_freewheeling)
-    return;
-
-  a2j_set_process_info(&info, self, client_ptr, PORT_OUTPUT, nframes);
-  a2j_jack_process_internal(self, &info);
-  snd_seq_drain_output(self->seq);
-}
-
 /////////////////////////////
 
 static
@@ -380,10 +337,26 @@ a2j_jack_process(
   jack_nframes_t nframes,
   void * arg)
 {
-  struct a2j_jack_client * client_ptr = arg;
+  int res;
+  snd_seq_event_t *event;
+  struct a2j_process_info info;
 
-  a2j_read(client_ptr->a2j_ptr, client_ptr, nframes);
-  a2j_write(client_ptr->a2j_ptr, client_ptr, nframes);
+  if (g_freewheeling)
+    return 0;
+
+  a2j_set_process_info(&info, g_a2j, PORT_INPUT, nframes);
+  a2j_jack_process_internal(g_a2j, &info); 
+
+  while ((res = snd_seq_event_input(g_a2j->seq, &event))>0) {
+    if (event->source.client == SND_SEQ_CLIENT_SYSTEM)
+      a2j_port_event(g_a2j, event);
+    else
+      a2j_input_event(g_a2j, event, &info);
+  }
+
+  a2j_set_process_info(&info, g_a2j, PORT_OUTPUT, nframes);
+  a2j_jack_process_internal(g_a2j, &info);
+  snd_seq_drain_output(g_a2j->seq);
 
   return 0;
 }
@@ -415,62 +388,59 @@ a2j_jack_shutdown(
   sem_post(&g_a2j->port_sem);
 }
 
-bool
+jack_client_t *
 a2j_jack_client_init(
-  struct a2j * self,
-  struct a2j_jack_client * client_ptr,
-  const char * name)
+  const char * client_name,
+  const char * server_name)
 {
   int error;
   jack_status_t status;
+  jack_client_t * jack_client;
 
-  client_ptr->a2j_ptr = self;
-  strcpy(client_ptr->name, name);
-
-  if (self->jack_server_name)
+  if (server_name != NULL)
   {
-    client_ptr->client = jack_client_open(name, JackServerName|JackNoStartServer, &status, self->jack_server_name);
+    jack_client = jack_client_open(client_name, JackServerName|JackNoStartServer, &status, server_name);
   }
   else
   {
-    client_ptr->client = jack_client_open(name, JackNoStartServer, &status);
+    jack_client = jack_client_open(client_name, JackNoStartServer, &status);
   }
 
-  if (!client_ptr->client)
+  if (!jack_client)
   {
     a2j_error("Cannot create jack client");
     goto fail;
   }
 
-  jack_set_process_callback(client_ptr->client, a2j_jack_process, client_ptr);
-  jack_set_freewheel_callback(client_ptr->client, a2j_jack_freewheel, self);
-  jack_on_shutdown(client_ptr->client, a2j_jack_shutdown, NULL);
+  jack_set_process_callback(jack_client, a2j_jack_process, NULL);
+  jack_set_freewheel_callback(jack_client, a2j_jack_freewheel, NULL);
+  jack_on_shutdown(jack_client, a2j_jack_shutdown, NULL);
 
-  if (jack_activate(client_ptr->client))
+  if (jack_activate(jack_client))
   {
     a2j_error("can't activate jack client");
     goto fail_close;
   }
 
-  return true;
+  return jack_client;
 
 fail_close:
-  error = jack_client_close(client_ptr->client);
+  error = jack_client_close(jack_client);
   if (error != 0)
   {
     a2j_error("Cannot close jack client");
   }
 
 fail:
-  return false;
+  return NULL;
 }
 
 void
 a2j_jack_client_uninit(
-  struct a2j_jack_client * client_ptr)
+  jack_client_t * jack_client)
 {
-  jack_deactivate(client_ptr->client);
-  jack_client_close(client_ptr->client);
+  jack_deactivate(jack_client);
+  jack_client_close(jack_client);
 }
 
 static
@@ -545,8 +515,6 @@ a2j_new(
   if (!self)
     return NULL;
 
-  self->jack_server_name = jack_server_name;
-
   self->export_hw_ports = export_hw_ports;
 
   self->port_add = jack_ringbuffer_create(2*MAX_PORTS*sizeof(snd_seq_addr_t));
@@ -585,7 +553,7 @@ a2j_new(
   a2j_add_ports(&self->stream[PORT_INPUT]);
   a2j_add_ports(&self->stream[PORT_OUTPUT]);
 
-  if (!a2j_jack_client_init(self, self->jack_clients + 0, "a2j"))
+  if (!a2j_jack_client_init("a2j", jack_server_name))
   {
     free(self);
     return NULL;
@@ -612,7 +580,7 @@ a2j_destroy(
   a2j_stream_detach(self->stream + PORT_INPUT);
   a2j_stream_detach(self->stream + PORT_OUTPUT);
 
-  a2j_jack_client_uninit(self->jack_clients + 0);
+  a2j_jack_client_uninit(self->jack_client);
 
   snd_seq_close(self->seq);
   self->seq = NULL;
