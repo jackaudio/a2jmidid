@@ -2,7 +2,7 @@
 /*
  * ALSA SEQ < - > JACK MIDI bridge
  *
- * Copyright (c) 2008 Nedko Arnaudov <nedko@arnaudov.name>
+ * Copyright (c) 2007,2008 Nedko Arnaudov <nedko@arnaudov.name>
  * Copyright (C) 2007-2008 Juuso Alasuutari
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -26,154 +26,7 @@
 
 #include "dbus.h"
 #include "log.h"
-
-#define A2J_DBUS_SERVICE_NAME "org.gna.home.a2jmidid"
-
-struct a2j_dbus_method_call
-{
-    void *context;
-    DBusConnection *connection;
-    const char *method_name;
-    DBusMessage *message;
-    DBusMessage *reply;
-};
-
-#define A2J_DBUS_DIRECTION_IN    false
-#define A2J_DBUS_DIRECTION_OUT   true
-
-struct a2j_dbus_interface_method_argument_descriptor
-{
-    const char * name;
-    const char * type;
-    bool direction_out;     /* A2J_DBUS_DIRECTION_XXX */
-};
-
-struct a2j_dbus_interface_method_descriptor
-{
-    const char * name;
-    const struct a2j_dbus_interface_method_argument_descriptor * arguments;
-    void (* handler)(struct a2j_dbus_method_call * call);
-};
-
-struct a2j_dbus_interface_signal_argument_descriptor
-{
-    const char * name;
-    const char * type;
-};
-
-struct a2j_dbus_interface_signal_descriptor
-{
-    const char * name;
-    const struct a2j_dbus_interface_signal_argument_descriptor * arguments;
-};
-
-struct a2j_dbus_interface_descriptor
-{
-    const char * name;
-
-    bool
-    (* handler)(
-        struct a2j_dbus_method_call * call,
-        const struct a2j_dbus_interface_method_descriptor * methods);
-
-    const struct a2j_dbus_interface_method_descriptor * methods;
-    const struct a2j_dbus_interface_signal_descriptor * signals;
-};
-
-struct a2j_dbus_object_descriptor
-{
-    struct a2j_dbus_interface_descriptor ** interfaces;
-    void * context;
-};
-
-#define A2J_DBUS_METHOD_ARGUMENTS_BEGIN(method_name)                                    \
-static const                                                                            \
-struct a2j_dbus_interface_method_argument_descriptor method_name ## _arguments[] =      \
-{
-
-#define A2J_DBUS_METHOD_ARGUMENT(argument_name, argument_type, argument_direction_out)  \
-        {                                                                               \
-                .name = argument_name,                                                  \
-                .type = argument_type,                                                  \
-                .direction_out = argument_direction_out                                 \
-        },
-
-#define A2J_DBUS_METHOD_ARGUMENTS_END                                                   \
-    A2J_DBUS_METHOD_ARGUMENT(NULL, NULL, false)                                         \
-};
-
-#define A2J_DBUS_METHODS_BEGIN                                                          \
-static const                                                                            \
-struct a2j_dbus_interface_method_descriptor methods_dtor[] =                            \
-{
-
-#define A2J_DBUS_METHOD_DESCRIBE(method_name, handler_name)                             \
-        {                                                                               \
-            .name = # method_name,                                                      \
-            .arguments = method_name ## _arguments,                                     \
-            .handler = handler_name                                                     \
-        },
-
-#define A2J_DBUS_METHODS_END                                                            \
-        {                                                                               \
-            .name = NULL,                                                               \
-            .arguments = NULL,                                                          \
-            .handler = NULL                                                             \
-        }                                                                               \
-};
-
-#define A2J_DBUS_SIGNAL_ARGUMENTS_BEGIN(signal_name)                                    \
-static const                                                                            \
-struct a2j_dbus_interface_signal_argument_descriptor signal_name ## _arguments[] =      \
-{
-
-#define A2J_DBUS_SIGNAL_ARGUMENT(argument_name, argument_type)                          \
-        {                                                                               \
-                .name = argument_name,                                                  \
-                .type = argument_type                                                   \
-        },
-
-#define A2J_DBUS_SIGNAL_ARGUMENTS_END                                                   \
-        A2J_DBUS_SIGNAL_ARGUMENT(NULL, NULL)                                            \
-};
-
-#define A2J_DBUS_SIGNALS_BEGIN                                                          \
-static const                                                                            \
-struct a2j_dbus_interface_signal_descriptor signals_dtor[] =                            \
-{
-
-#define A2J_DBUS_SIGNAL_DESCRIBE(signal_name)                                           \
-        {                                                                               \
-                .name = # signal_name,                                                  \
-                .arguments = signal_name ## _arguments                                  \
-        },
-
-#define A2J_DBUS_SIGNALS_END                                                            \
-        {                                                                               \
-                .name = NULL,                                                           \
-                .arguments = NULL,                                                      \
-        }                                                                               \
-};
-
-#define A2J_DBUS_IFACE_BEGIN(iface_var, iface_name)                                     \
-struct a2j_dbus_interface_descriptor iface_var =                                        \
-{                                                                                       \
-        .name = iface_name,                                                             \
-        .handler = a2j_dbus_run_method,
-
-#define A2J_DBUS_IFACE_HANDLER(handler_func)                                            \
-        .handler = handler_func,
-
-#define A2J_DBUS_IFACE_EXPOSE_METHODS                                                   \
-        .methods = methods_dtor,
-
-#define A2J_DBUS_IFACE_EXPOSE_SIGNALS                                                   \
-        .signals = signals_dtor,
-
-#define A2J_DBUS_IFACE_END                                                              \
-};
-
-#define A2J_DBUS_ERROR_UNKNOWN_METHOD              A2J_DBUS_SERVICE_NAME ".error.unknown_method"
+#include "dbus_internal.h"
 
 void
 a2j_dbus_error(
@@ -234,7 +87,45 @@ a2j_dbus_send_method_return(
   call->reply = NULL;
 }
 
-#define object_ptr ((struct a2j_dbus_object_descriptor *)data)
+/*
+ * Construct a method return which holds a single argument or, if
+ * the type parameter is DBUS_TYPE_INVALID, no arguments at all
+ * (a void message).
+ *
+ * The operation can only fail due to lack of memory, in which case
+ * there's no sense in trying to construct an error return. Instead,
+ * call->reply will be set to NULL and handled in send_method_return().
+ */
+void
+a2j_dbus_construct_method_return_single(
+    struct a2j_dbus_method_call * call_ptr,
+    int type,
+    void * arg)
+{
+    DBusMessageIter iter;
+
+    call_ptr->reply = dbus_message_new_method_return(call_ptr->message);
+    if (call_ptr->reply == NULL)
+    {
+        goto fail_no_mem;
+    }
+
+    dbus_message_iter_init_append(call_ptr->reply, &iter);
+
+    if (!dbus_message_iter_append_basic(&iter, type, arg))
+    {
+        dbus_message_unref(call_ptr->reply);
+        call_ptr->reply = NULL;
+        goto fail_no_mem;
+    }
+
+    return;
+
+fail_no_mem:
+    a2j_error("Ran out of memory trying to construct method return");
+}
+
+#define descriptor_ptr ((struct a2j_dbus_object_descriptor *)data)
 
 DBusHandlerResult
 a2j_dbus_message_handler(
@@ -263,7 +154,7 @@ a2j_dbus_message_handler(
   }
 
   /* Initialize our data. */
-  call.context = object_ptr->context;
+  call.context = descriptor_ptr->context;
   call.connection = connection;
   call.message = message;
   call.reply = NULL;
@@ -278,7 +169,7 @@ a2j_dbus_message_handler(
      * method and return TRUE.
      */
 
-    interface_ptr_ptr = object_ptr->interfaces;
+    interface_ptr_ptr = descriptor_ptr->interfaces;
 
     while (*interface_ptr_ptr != NULL)
     {
@@ -302,7 +193,7 @@ a2j_dbus_message_handler(
      * omitting the interface must never be rejected.
      */
 
-    interface_ptr_ptr = object_ptr->interfaces;
+    interface_ptr_ptr = descriptor_ptr->interfaces;
 
     while (*interface_ptr_ptr != NULL)
     {
@@ -338,15 +229,54 @@ a2j_dbus_message_handler_unregister(
     a2j_debug("Message handler was unregistered");
 }
 
-#undef object_ptr
+#undef descriptor_ptr
+
+/*
+ * Check if the supplied method name exists in method descriptor,
+ * if it does execute it and return TRUE. Otherwise return FALSE.
+ */
+bool
+a2j_dbus_run_method(
+    struct a2j_dbus_method_call *call,
+    const struct a2j_dbus_interface_method_descriptor * methods)
+{
+    const struct a2j_dbus_interface_method_descriptor * method_ptr;
+
+    method_ptr = methods;
+
+    while (method_ptr->name != NULL)
+    {
+        if (strcmp(call->method_name, method_ptr->name) == 0)
+        {
+            method_ptr->handler(call);
+            return TRUE;
+        }
+
+        method_ptr++;
+    }
+
+    return FALSE;
+}
 
 DBusConnection * g_dbus_connection_ptr;
+struct a2j_dbus_object_descriptor g_a2j_dbus_object_descriptor;
+struct a2j_dbus_interface_descriptor * g_a2j_dbus_interfaces[] =
+{
+    &g_a2j_iface_introspectable,
+    NULL
+};
 
 bool
 a2j_dbus_init()
 {
 	DBusError dbus_error;
   int ret;
+    DBusObjectPathVTable vtable =
+    {
+        a2j_dbus_message_handler_unregister,
+        a2j_dbus_message_handler,
+        NULL
+    };
 
 	dbus_error_init(&dbus_error);
   g_dbus_connection_ptr = dbus_bus_get(DBUS_BUS_SESSION, &dbus_error);
@@ -370,6 +300,19 @@ a2j_dbus_init()
   if (ret == DBUS_REQUEST_NAME_REPLY_EXISTS)
   {
     a2j_error("Requested bus name already exists");
+    goto fail_unref_dbus_connection;
+  }
+
+  g_a2j_dbus_object_descriptor.context = NULL;
+  g_a2j_dbus_object_descriptor.interfaces = g_a2j_dbus_interfaces;
+
+  if (!dbus_connection_register_object_path(
+        g_dbus_connection_ptr,
+        A2J_DBUS_OBJECT_PATH,
+        &vtable,
+        &g_a2j_dbus_object_descriptor))
+  {
+    a2j_error("Ran out of memory trying to register D-Bus object path");
     goto fail_unref_dbus_connection;
   }
 
