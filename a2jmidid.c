@@ -41,6 +41,7 @@
 
 struct a2j_port_type g_port_type[2];
 bool g_keep_walking = true;
+static bool g_started = false;
 static bool g_freewheeling = false;
 struct a2j * g_a2j = NULL;
 
@@ -606,15 +607,66 @@ a2j_port_type_init()
   g_port_type[PORT_OUTPUT].jack_func = a2j_do_jack_output;
 }
 
-int
-main(
-  int argc,
-  char *argv[])
+bool
+a2j_start()
 {
   /* TODO: Make these configurable through D-Bus */
   const char* jack_server = NULL;
   bool export_hw_ports = false;
 
+  if (g_started)
+  {
+    a2j_error("Bridge already started");
+    return false;
+  }
+
+  a2j_info("Bridge starting...");
+
+  g_a2j = a2j_new(jack_server, export_hw_ports);
+  if (g_a2j == NULL)
+  {
+    a2j_error("a2j_new() failed.");
+    return false;
+  }
+
+  a2j_info("Bridge started");
+
+  g_started = true;
+
+  return true;
+}
+
+bool
+a2j_stop()
+{
+  if (!g_started)
+  {
+    a2j_error("Bridge already stopped");
+    return false;
+  }
+
+  a2j_info("Bridge stopping...");
+
+  a2j_destroy(g_a2j);
+
+  a2j_info("Bridge stopped");
+
+  g_started = false;
+
+  return true;
+}
+
+bool
+a2j_is_started()
+{
+  return g_started;
+}
+
+int
+main(
+  int argc,
+  char *argv[])
+{
   a2j_port_type_init();
 
   a2j_info("----------------------------");
@@ -624,33 +676,34 @@ main(
   a2j_info("----------------------------");
   a2j_info("Activated.");
 
-  g_a2j = a2j_new(jack_server, export_hw_ports);
-  if (g_a2j == NULL)
-    goto fail1;
-
   signal(SIGINT, &a2j_sigint_handler);
   signal(SIGTERM, &a2j_sigint_handler);
 
   if (!a2j_dbus_init())
   {
-		goto fail_destroy_superstruct;
+    a2j_error("a2j_dbus_init() failed.");
+		goto fail;
 	}
-
-  a2j_info("Started.");
 
   while (g_keep_walking)
   {
-		a2j_dbus_run(MAIN_LOOP_SLEEP_INTERVAL);
-    a2j_free_ports(g_a2j->port_del);
-    a2j_update_ports(g_a2j);
+    a2j_dbus_run(MAIN_LOOP_SLEEP_INTERVAL);
+
+    if (g_started)
+    {
+      a2j_free_ports(g_a2j->port_del);
+      a2j_update_ports(g_a2j);
+    }
+  }
+
+  if (g_started)
+  {
+    a2j_stop();
   }
 
   a2j_dbus_uninit();
 
-fail_destroy_superstruct:
-  a2j_destroy(g_a2j);
-
-fail1:
+fail:
 
   a2j_info("Deactivated.");
   a2j_info("----------------------------");

@@ -169,6 +169,7 @@ struct a2j_dbus_interface_descriptor iface_var =                                
 #define A2J_DBUS_IFACE_END                                                              \
 };
 
+#define A2J_DBUS_ERROR_GENERIC                     A2J_DBUS_SERVICE_NAME ".error.generic"
 #define A2J_DBUS_ERROR_UNKNOWN_METHOD              A2J_DBUS_SERVICE_NAME ".error.unknown_method"
 
 void

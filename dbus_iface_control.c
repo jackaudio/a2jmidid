@@ -22,8 +22,7 @@
 #include <dbus/dbus.h>
 
 #include "dbus_internal.h"
-
-extern bool g_keep_walking;
+#include "a2jmidid.h"
 
 static
 void
@@ -33,11 +32,60 @@ a2j_dbus_exit(
 	g_keep_walking = false;
 }
 
+static
+void
+a2j_dbus_start(
+  struct a2j_dbus_method_call * call_ptr)
+{
+	if (!a2j_start())
+  {
+    a2j_dbus_error(call_ptr, A2J_DBUS_ERROR_GENERIC, "a2j_start() failed.");
+  }
+}
+
+static
+void
+a2j_dbus_stop(
+  struct a2j_dbus_method_call * call_ptr)
+{
+	if (!a2j_stop())
+  {
+    a2j_dbus_error(call_ptr, A2J_DBUS_ERROR_GENERIC, "a2j_stop() failed.");
+  }
+}
+
+static
+void
+a2j_dbus_is_started(
+  struct a2j_dbus_method_call * call_ptr)
+{
+  dbus_bool_t is_started;
+
+	is_started = a2j_is_started();
+
+  a2j_dbus_construct_method_return_single(
+    call_ptr,
+    DBUS_TYPE_BOOLEAN,
+    &is_started);
+}
+
 A2J_DBUS_METHOD_ARGUMENTS_BEGIN(exit)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(start)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(stop)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(is_started)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
 A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(exit, a2j_dbus_exit)
+  A2J_DBUS_METHOD_DESCRIBE(start, a2j_dbus_start)
+  A2J_DBUS_METHOD_DESCRIBE(stop, a2j_dbus_stop)
+  A2J_DBUS_METHOD_DESCRIBE(is_started, a2j_dbus_is_started)
 A2J_DBUS_METHODS_END
 
 A2J_DBUS_IFACE_BEGIN(g_a2j_iface_control, "org.gna.home.a2jmidid.control")

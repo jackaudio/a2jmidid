@@ -31,6 +31,18 @@ def main():
             if arg == "exit":
                 print "--- exit"
                 control_iface.exit()
+            elif arg == "start":
+                print "--- start"
+                control_iface.start()
+            elif arg == "stop":
+                print "--- stop"
+                control_iface.stop()
+            elif arg == "status":
+                print "--- status"
+                if control_iface.is_started():
+                    print "Bridging enabled"
+                else:
+                    print "Bridging disabled"
             else:
                 print "Unknown command '%s'" % arg
         except dbus.DBusException, e:
