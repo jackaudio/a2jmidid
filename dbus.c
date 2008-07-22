@@ -67,7 +67,7 @@ a2j_dbus_send_method_return(
 {
   if (call->reply == NULL)
   {
-    a2j_error("send_method_return() called with a NULL message, trying to construct a void return...");
+    a2j_debug("send_method_return() called with a NULL message, trying to construct a void return...");
 
     call->reply = dbus_message_new_method_return(call->message);
     if (call->reply == NULL)
@@ -263,6 +263,7 @@ struct a2j_dbus_object_descriptor g_a2j_dbus_object_descriptor;
 struct a2j_dbus_interface_descriptor * g_a2j_dbus_interfaces[] =
 {
     &g_a2j_iface_introspectable,
+    &g_a2j_iface_control,
     NULL
 };
 

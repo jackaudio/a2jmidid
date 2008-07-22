@@ -191,5 +191,6 @@ a2j_dbus_construct_method_return_single(
 
 extern struct a2j_dbus_interface_descriptor * g_a2j_dbus_interfaces[];
 extern struct a2j_dbus_interface_descriptor g_a2j_iface_introspectable;
+extern struct a2j_dbus_interface_descriptor g_a2j_iface_control;
 
 #endif /* #ifndef DBUS_INTERNAL_H__9AE08E23_C592_46FB_84BD_E3D0E8721C07__INCLUDED */

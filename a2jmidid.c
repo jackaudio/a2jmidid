@@ -42,7 +42,7 @@
 #define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
 
 struct a2j_port_type g_port_type[2];
-static bool g_keep_walking = true;
+bool g_keep_walking = true;
 static bool g_freewheeling = false;
 struct a2j * g_a2j = NULL;
 
