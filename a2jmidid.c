@@ -30,8 +30,6 @@
 
 #include <dbus/dbus.h>
 
-#include <getopt.h>
-
 #include "structs.h"
 #include "port.h"
 #include "port_thread.h"
@@ -608,44 +606,23 @@ a2j_port_type_init()
   g_port_type[PORT_OUTPUT].jack_func = a2j_do_jack_output;
 }
 
-static
-void
-a2j_help(
-  const char * self)
-{
-  printf("Usage: %s [-j jack-server] [-e | --export-hw]\n", self);
-  printf("Defaults:\n");
-  printf("-j default\n\n");
-}
-
 int
 main(
   int argc,
   char *argv[])
 {
+  /* TODO: Make these configurable through D-Bus */
   const char* jack_server = NULL;
   bool export_hw_ports = false;
 
-  struct option long_opts[] = { { "export-hw", 0, 0, 'e' }, { 0, 0, 0, 0 } };
-
   a2j_port_type_init();
 
-  printf("JACK MIDI <-> ALSA sequencer MIDI bridge\n");
-  printf("Copyright 2006,2007 Dmitry S. Baikov\n");
-  printf("Copyright 2007,2008 Nedko Arnaudov\n\n");
-  int option_index = 0;
-  while (1) {
-    int c = getopt_long(argc, argv, "j:eq", long_opts, &option_index);
-    if (c == -1)
-      break;
-    switch (c) {
-    case 'j': jack_server = optarg; break;
-    case 'e': export_hw_ports = true; break;
-    default:
-      a2j_help(argv[0]);
-      return 1;
-    }
-  }
+  a2j_info("----------------------------");
+  a2j_info("JACK MIDI <-> ALSA sequencer MIDI bridge");
+  a2j_info("Copyright 2006,2007 Dmitry S. Baikov");
+  a2j_info("Copyright 2007,2008 Nedko Arnaudov");
+  a2j_info("----------------------------");
+  a2j_info("Activated.");
 
   g_a2j = a2j_new(jack_server, export_hw_ports);
   if (g_a2j == NULL)
@@ -659,7 +636,7 @@ main(
 		goto fail_destroy_superstruct;
 	}
 
-  printf("Started.\n");
+  a2j_info("Started.");
 
   while (g_keep_walking)
   {
@@ -674,6 +651,9 @@ fail_destroy_superstruct:
   a2j_destroy(g_a2j);
 
 fail1:
+
+  a2j_info("Deactivated.");
+  a2j_info("----------------------------");
 
   return 0;
 }
