@@ -20,10 +20,7 @@
  */
 
 #include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
 #include <stdio.h>
-#include <assert.h>
 #include <dbus/dbus.h>
 
 #include "dbus_internal.h"
