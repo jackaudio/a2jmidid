@@ -38,6 +38,8 @@ def configure(conf):
     else:
         conf.env['DBUS_SERVICES_DIR'] = os.path.normpath(conf.env['PREFIX'] + '/share/dbus-1/services')
 
+    conf.check_tool('misc')             # dbus service file subst tool
+
     print
     #display_msg("==================")
     #print
@@ -72,3 +74,11 @@ def build(bld):
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
     prog.uselib = 'ALSA JACK DBUS-1'
+
+    # process org.gna.home.a2jmidid.service.in -> org.gna.home.a2jmidid.service
+    obj = bld.create_obj('subst')
+    obj.source = 'org.gna.home.a2jmidid.service.in'
+    obj.target = 'org.gna.home.a2jmidid.service'
+    obj.dict = {'BINDIR': bld.env()['PREFIX'] + '/bin'}
+    obj.inst_var = bld.env()['DBUS_SERVICES_DIR']
+    obj.inst_dir = '/'
