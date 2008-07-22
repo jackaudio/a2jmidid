@@ -37,17 +37,14 @@
 #include "port_thread.h"
 #include "port_hash.h"
 #include "log.h"
+#include "dbus.h"
 
 #define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
-
-#define A2J_DBUS_SERVICE_NAME "org.gna.home.a2jmidid"
 
 struct a2j_port_type g_port_type[2];
 static bool g_keep_walking = true;
 static bool g_freewheeling = false;
 struct a2j * g_a2j = NULL;
-
-DBusConnection * g_dbus_connection_ptr;
 
 /*
  * =================== Input/output port handling =========================
@@ -628,8 +625,6 @@ main(
 {
   const char* jack_server = NULL;
   bool export_hw_ports = false;
-	DBusError dbus_error;
-  int ret;
 
   struct option long_opts[] = { { "export-hw", 0, 0, 'e' }, { 0, 0, 0, 0 } };
 
@@ -659,42 +654,21 @@ main(
   signal(SIGINT, &a2j_sigint_handler);
   signal(SIGTERM, &a2j_sigint_handler);
 
-	dbus_error_init(&dbus_error);
-  g_dbus_connection_ptr = dbus_bus_get(DBUS_BUS_SESSION, &dbus_error);
-	if (dbus_error_is_set(&dbus_error))
+  if (!a2j_dbus_init())
   {
-		a2j_error("Failed to get bus: %s", dbus_error.message);
 		goto fail_destroy_superstruct;
 	}
-
-  dbus_connection_set_exit_on_disconnect(g_dbus_connection_ptr, FALSE);
-
-  a2j_debug("D-Bus unique name is '%s'", dbus_bus_get_unique_name(g_dbus_connection_ptr));
-
-  ret = dbus_bus_request_name(g_dbus_connection_ptr, A2J_DBUS_SERVICE_NAME, DBUS_NAME_FLAG_DO_NOT_QUEUE, &dbus_error);
-  if (ret == -1)
-  {
-    a2j_error("Failed to acquire bus name: %s", dbus_error.message);
-    goto fail_unref_dbus_connection;
-  }
-
-  if (ret == DBUS_REQUEST_NAME_REPLY_EXISTS)
-  {
-    a2j_error("Requested bus name already exists");
-    goto fail_unref_dbus_connection;
-  }
 
   printf("Started.\n");
 
   while (g_keep_walking)
   {
-		dbus_connection_read_write_dispatch(g_dbus_connection_ptr, MAIN_LOOP_SLEEP_INTERVAL);
+		a2j_dbus_run(MAIN_LOOP_SLEEP_INTERVAL);
     a2j_free_ports(g_a2j->port_del);
     a2j_update_ports(g_a2j);
   }
 
-fail_unref_dbus_connection:
-  dbus_connection_unref(g_dbus_connection_ptr);
+  a2j_dbus_uninit();
 
 fail_destroy_superstruct:
   a2j_destroy(g_a2j);
