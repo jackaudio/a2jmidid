@@ -86,11 +86,11 @@ a2j_error(
   const char * format,
   ...)
 {
-	va_list ap;
+  va_list ap;
 
-	va_start(ap, format);
-	a2j_log(LOG_LEVEL_ERROR, NULL, format, ap);
-	va_end(ap);
+  va_start(ap, format);
+  a2j_log(LOG_LEVEL_ERROR, NULL, format, ap);
+  va_end(ap);
 }
 
 void
@@ -98,11 +98,11 @@ a2j_info(
   const char * format,
   ...)
 {
-	va_list ap;
+  va_list ap;
 
-	va_start(ap, format);
-	a2j_log(LOG_LEVEL_INFO, NULL, format, ap);
-	va_end(ap);
+  va_start(ap, format);
+  a2j_log(LOG_LEVEL_INFO, NULL, format, ap);
+  va_end(ap);
 }
 
 void
@@ -110,9 +110,9 @@ a2j_debug(
   const char * format,
   ...)
 {
-	va_list ap;
+  va_list ap;
 
-	va_start(ap, format);
-	a2j_log(LOG_LEVEL_DEBUG, NULL, format, ap);
-	va_end(ap);
+  va_start(ap, format);
+  a2j_log(LOG_LEVEL_DEBUG, NULL, format, ap);
+  va_end(ap);
 }
