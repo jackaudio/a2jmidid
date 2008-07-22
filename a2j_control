@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+name_base = 'org.gna.home.a2jmidid'
+control_interface_name = name_base + '.control'
+service_name = name_base
+
+import sys
+import os
+from traceback import print_exc
+
+import dbus
+
+def main():
+    if len(sys.argv) == 1:
+        print "Usage: %s [command] [command] ..." % os.path.basename(sys.argv[0])
+        print "Commands:"
+        print "    exit                 - exit a2j bridge dbus service"
+        sys.exit(0)
+    
+    bus = dbus.SessionBus()
+
+    controller = bus.get_object(service_name, "/")
+    control_iface = dbus.Interface(controller, control_interface_name)
+
+    # check arguments
+    index = 1
+    while index < len(sys.argv):
+        arg = sys.argv[index]
+        index += 1
+        try:
+            if arg == "exit":
+                print "--- exit"
+                control_iface.exit()
+            else:
+                print "Unknown command '%s'" % arg
+        except dbus.DBusException, e:
+            print "DBus exception: %s" % str(e)
+
+if __name__ == '__main__':
+    main()
