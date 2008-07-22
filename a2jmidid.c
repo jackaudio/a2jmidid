@@ -36,6 +36,7 @@
 #include "port_hash.h"
 #include "log.h"
 #include "dbus.h"
+#include "a2jmidid.h"
 
 #define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
 
@@ -554,7 +555,7 @@ a2j_new(
   a2j_add_ports(&self->stream[PORT_INPUT]);
   a2j_add_ports(&self->stream[PORT_OUTPUT]);
 
-  if (!a2j_jack_client_init(self, "a2j", jack_server_name))
+  if (!a2j_jack_client_init(self, A2J_JACK_CLIENT_NAME, jack_server_name))
   {
     free(self);
     return NULL;

@@ -69,6 +69,21 @@ a2j_dbus_is_started(
     &is_started);
 }
 
+static
+void
+a2j_dbus_get_jack_client_name(
+  struct a2j_dbus_method_call * call_ptr)
+{
+  const char * jack_client_name;
+
+  jack_client_name = A2J_JACK_CLIENT_NAME;
+
+  a2j_dbus_construct_method_return_single(
+    call_ptr,
+    DBUS_TYPE_STRING,
+    &jack_client_name);
+}
+
 A2J_DBUS_METHOD_ARGUMENTS_BEGIN(exit)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
@@ -81,11 +96,15 @@ A2J_DBUS_METHOD_ARGUMENTS_END
 A2J_DBUS_METHOD_ARGUMENTS_BEGIN(is_started)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(get_jack_client_name)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
 A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(exit, a2j_dbus_exit)
   A2J_DBUS_METHOD_DESCRIBE(start, a2j_dbus_start)
   A2J_DBUS_METHOD_DESCRIBE(stop, a2j_dbus_stop)
   A2J_DBUS_METHOD_DESCRIBE(is_started, a2j_dbus_is_started)
+  A2J_DBUS_METHOD_DESCRIBE(get_jack_client_name, a2j_dbus_get_jack_client_name)
 A2J_DBUS_METHODS_END
 
 A2J_DBUS_IFACE_BEGIN(g_a2j_iface_control, "org.gna.home.a2jmidid.control")

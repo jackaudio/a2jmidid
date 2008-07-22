@@ -18,6 +18,7 @@ def main():
         print "    start       - start bridging"
         print "    start       - stop brdiging"
         print "    status      - get bridging status"
+        print "    gjcn        - get JACK client name"
         sys.exit(0)
     
     bus = dbus.SessionBus()
@@ -46,6 +47,9 @@ def main():
                     print "Bridging enabled"
                 else:
                     print "Bridging disabled"
+            elif arg == "gjcn":
+                print "--- get jack client name"
+                print control_iface.get_jack_client_name()
             else:
                 print "Unknown command '%s'" % arg
         except dbus.DBusException, e:

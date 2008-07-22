@@ -32,4 +32,6 @@ a2j_is_started();
 
 extern bool g_keep_walking;
 
+#define A2J_JACK_CLIENT_NAME "a2j"
+
 #endif /* #ifndef A2JMIDID_H__A9B1D7AF_8702_48D4_899B_86B25FA4F54C__INCLUDED */
