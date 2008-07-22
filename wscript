@@ -82,3 +82,5 @@ def build(bld):
     obj.dict = {'BINDIR': bld.env()['PREFIX'] + '/bin'}
     obj.inst_var = bld.env()['DBUS_SERVICES_DIR']
     obj.inst_dir = '/'
+
+    install_files('PREFIX', 'bin', 'a2j_control', chmod=0755)
