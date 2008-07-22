@@ -14,7 +14,10 @@ def main():
     if len(sys.argv) == 1:
         print "Usage: %s [command] [command] ..." % os.path.basename(sys.argv[0])
         print "Commands:"
-        print "    exit                 - exit a2j bridge dbus service"
+        print "    exit        - exit a2j bridge dbus service"
+        print "    start       - start bridging"
+        print "    start       - stop brdiging"
+        print "    status      - get bridging status"
         sys.exit(0)
     
     bus = dbus.SessionBus()
