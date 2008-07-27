@@ -45,4 +45,10 @@ a2j_log(
 #define a2j_info(format, args...) a2j_log(A2J_LOG_LEVEL_INFO, format "\n", ## args)
 #define a2j_error(format, args...) a2j_log(A2J_LOG_LEVEL_ERROR, ANSI_COLOR_RED "ERROR: " ANSI_RESET "%s: " format "\n", __func__, ## args)
 
+bool
+a2j_log_init();
+
+void
+a2j_log_uninit();
+
 #endif /* #ifndef LOG_H__76222A51_98D8_40C2_A67E_0FF38615A1DD__INCLUDED */

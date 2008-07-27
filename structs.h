@@ -71,8 +71,6 @@ struct a2j
   jack_ringbuffer_t *port_del; // struct a2j_port*
 
   struct a2j_stream stream[2];
-
-  bool export_hw_ports;
 };
 
 #define NSEC_PER_SEC ((int64_t)1000*1000*1000)

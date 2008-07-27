@@ -37,6 +37,8 @@
 #include "log.h"
 #include "dbus.h"
 #include "a2jmidid.h"
+#include "paths.h"
+#include "conf.h"
 
 #define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
 
@@ -507,9 +509,7 @@ a2j_stream_close(
 }
 
 struct a2j *
-a2j_new(
-  const char * jack_server_name,
-  bool export_hw_ports)
+a2j_new()
 {
   int err;
 
@@ -517,8 +517,6 @@ a2j_new(
   a2j_debug("midi: new");
   if (!self)
     return NULL;
-
-  self->export_hw_ports = export_hw_ports;
 
   self->port_add = jack_ringbuffer_create(2*MAX_PORTS*sizeof(snd_seq_addr_t));
   self->port_del = jack_ringbuffer_create(2*MAX_PORTS*sizeof(struct a2j_port*));
@@ -555,7 +553,7 @@ a2j_new(
   a2j_add_ports(&self->stream[PORT_INPUT]);
   a2j_add_ports(&self->stream[PORT_OUTPUT]);
 
-  if (!a2j_jack_client_init(self, A2J_JACK_CLIENT_NAME, jack_server_name))
+  if (!a2j_jack_client_init(self, A2J_JACK_CLIENT_NAME, g_a2j_jack_server_name))
   {
     free(self);
     return NULL;
@@ -668,6 +666,18 @@ main(
   int argc,
   char *argv[])
 {
+  if (!a2j_paths_init())
+  {
+    goto fail;
+  }
+
+  if (!a2j_log_init())
+  {
+    goto fail_paths_uninit;
+  }
+
+  a2j_conf_load();
+
   a2j_port_type_init();
 
   a2j_info("----------------------------");
@@ -683,7 +693,7 @@ main(
   if (!a2j_dbus_init())
   {
     a2j_error("a2j_dbus_init() failed.");
-		goto fail;
+		goto fail_uninit_log;
 	}
 
   while (g_keep_walking)
@@ -704,10 +714,15 @@ main(
 
   a2j_dbus_uninit();
 
-fail:
-
   a2j_info("Deactivated.");
   a2j_info("----------------------------");
 
+fail_uninit_log:
+  a2j_log_uninit();
+
+fail_paths_uninit:
+  a2j_paths_uninit();
+
+fail:
   return 0;
 }

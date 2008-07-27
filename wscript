@@ -33,6 +33,9 @@ def configure(conf):
     conf.check_pkg('jack', vnum="0.109.0", mandatory=True)
     conf.check_pkg('dbus-1', mandatory=True, pkgvars=['session_bus_services_dir'])
 
+    conf.check_header('expat.h', mandatory=True)
+    conf.env['LIB_EXPAT'] = ['expat']
+
     if Params.g_options.enable_pkg_config_dbus_service_dir:
         conf.env['DBUS_SERVICES_DIR'] = conf.env['DBUS-1_SESSION_BUS_SERVICES_DIR'][0]
     else:
@@ -70,10 +73,12 @@ def build(bld):
         'dbus.c',
         'dbus_iface_introspectable.c',
         'dbus_iface_control.c',
+        'paths.c',
+        'conf.c',
         ]
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
-    prog.uselib = 'ALSA JACK DBUS-1'
+    prog.uselib = 'ALSA JACK DBUS-1 EXPAT'
 
     # process org.gna.home.a2jmidid.service.in -> org.gna.home.a2jmidid.service
     obj = bld.create_obj('subst')

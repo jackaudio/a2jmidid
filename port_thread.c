@@ -30,6 +30,7 @@
 #include "port_hash.h"
 #include "log.h"
 #include "port_thread.h"
+#include "conf.h"
 
 /*
  * ==================== Port add/del handling thread ==============================
@@ -163,7 +164,7 @@ a2j_update_port(
     return;
   }
 
-  if ((port_type & SND_SEQ_PORT_TYPE_HARDWARE) && !self->export_hw_ports)
+  if ((port_type & SND_SEQ_PORT_TYPE_HARDWARE) && !g_a2j_export_hw_ports)
   {
     a2j_debug("Ignoring hardware port");
     return;
