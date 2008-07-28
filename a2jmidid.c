@@ -50,6 +50,9 @@ static bool g_started = false;
 static bool g_freewheeling = false;
 struct a2j * g_a2j = NULL;
 
+bool g_a2j_export_hw_ports = false;
+char * g_a2j_jack_server_name = "default";
+
 /*
  * =================== Input/output port handling =========================
  */

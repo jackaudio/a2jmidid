@@ -31,9 +31,6 @@
 #include "log.h"
 #include "paths.h"
 
-bool g_a2j_export_hw_ports = false;
-char * g_a2j_jack_server_name = "default";
-
 #define A2J_CONF_HEADER_TEXT                            \
   "a2jmidid settings.\n"                                \
   "You probably don't want to edit this because\n"      \
