@@ -46,7 +46,8 @@ a2j_log(
 #define a2j_error(format, args...) a2j_log(A2J_LOG_LEVEL_ERROR, ANSI_COLOR_RED "ERROR: " ANSI_RESET "%s: " format "\n", __func__, ## args)
 
 bool
-a2j_log_init();
+a2j_log_init(
+  bool use_logfile);
 
 void
 a2j_log_uninit();

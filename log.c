@@ -32,14 +32,18 @@
 FILE * g_logfile = NULL;
 
 bool
-a2j_log_init()
+a2j_log_init(
+  bool use_logfile)
 {
-	g_logfile = fopen(g_a2j_log_path, "a");
-	if (g_logfile == NULL)
-	{
-		a2j_error("Cannot open a2jmidid log file \"%s\": %d (%s)", g_a2j_log_path, errno, strerror(errno));
-    return false;
-	}
+  if (use_logfile)
+  {
+    g_logfile = fopen(g_a2j_log_path, "a");
+    if (g_logfile == NULL)
+    {
+      a2j_error("Cannot open a2jmidid log file \"%s\": %d (%s)", g_a2j_log_path, errno, strerror(errno));
+      return false;
+    }
+  }
 
   return true;
 }
@@ -82,11 +86,14 @@ a2j_log(
 		}
 	}
 
-	time(&timestamp);
-	ctime_r(&timestamp, timestamp_str);
-	timestamp_str[24] = 0;
+	if (g_logfile != NULL)
+  {
+    time(&timestamp);
+    ctime_r(&timestamp, timestamp_str);
+    timestamp_str[24] = 0;
 
-	fprintf(stream, "%s: ", timestamp_str);
+    fprintf(stream, "%s: ", timestamp_str);
+  }
 
 	va_start(ap, format);
 	vfprintf(stream, format, ap);

@@ -30,6 +30,8 @@
 
 #include <dbus/dbus.h>
 
+#include <getopt.h>
+
 #include "structs.h"
 #include "port.h"
 #include "port_thread.h"
@@ -609,10 +611,6 @@ a2j_port_type_init()
 bool
 a2j_start()
 {
-  /* TODO: Make these configurable through D-Bus */
-  const char* jack_server = NULL;
-  bool export_hw_ports = false;
-
   if (g_started)
   {
     a2j_error("Bridge already started");
@@ -621,7 +619,11 @@ a2j_start()
 
   a2j_info("Bridge starting...");
 
-  g_a2j = a2j_new(jack_server, export_hw_ports);
+  a2j_info("Using JACK server '%s'", g_a2j_jack_server_name);
+
+  a2j_info("Hardware ports %s be expored.", g_a2j_export_hw_ports ? "will": "will not");
+
+  g_a2j = a2j_new();
   if (g_a2j == NULL)
   {
     a2j_error("a2j_new() failed.");
@@ -661,44 +663,110 @@ a2j_is_started()
   return g_started;
 }
 
+static
+void
+a2j_help(
+  const char * self)
+{
+  a2j_info("Usage: %s [-j jack-server] [-e | --export-hw]", self);
+  a2j_info("Defaults:");
+  a2j_info("-j default");
+}
+
 int
 main(
   int argc,
   char *argv[])
 {
+  bool dbus;
+
   if (!a2j_paths_init())
   {
     goto fail;
   }
 
-  if (!a2j_log_init())
+  dbus = argc == 2 && strcmp(argv[1], "dbus") == 0;
+
+  if (!a2j_log_init(dbus))
   {
     goto fail_paths_uninit;
   }
 
-  a2j_conf_load();
+  if (!dbus)
+  {
+    struct option long_opts[] = { { "export-hw", 0, 0, 'e' }, { 0, 0, 0, 0 } };
+
+    int option_index = 0;
+    int c;
+    while ((c = getopt_long(argc, argv, "j:eq", long_opts, &option_index)) != -1)
+    {
+      switch (c)
+      {
+      case 'j':
+        g_a2j_jack_server_name = strdup(optarg);
+        break;
+      case 'e':
+        g_a2j_export_hw_ports = true;
+        break;
+      default:
+        a2j_help(argv[0]);
+        return 1;        
+      }
+    }
+  }
+  else
+  {
+    //a2j_conf_load();
+  }
 
   a2j_port_type_init();
 
-  a2j_info("----------------------------");
+  if (dbus)
+  {
+    a2j_info("----------------------------");
+  }
+
   a2j_info("JACK MIDI <-> ALSA sequencer MIDI bridge");
   a2j_info("Copyright 2006,2007 Dmitry S. Baikov");
   a2j_info("Copyright 2007,2008 Nedko Arnaudov");
-  a2j_info("----------------------------");
-  a2j_info("Activated.");
+
+  if (dbus)
+  {
+    a2j_info("----------------------------");
+    a2j_info("Activated.");
+  }
+  else
+  {
+    a2j_info("");
+  }
 
   signal(SIGINT, &a2j_sigint_handler);
   signal(SIGTERM, &a2j_sigint_handler);
 
-  if (!a2j_dbus_init())
+  if (dbus)
   {
-    a2j_error("a2j_dbus_init() failed.");
-		goto fail_uninit_log;
-	}
+    if (!a2j_dbus_init())
+    {
+      a2j_error("a2j_dbus_init() failed.");
+      goto fail_uninit_log;
+    }
+  }
+  else
+  {
+    a2j_start();
+    a2j_info("Press ctrl-c to stop the bridge");
+  }
 
   while (g_keep_walking)
   {
-    a2j_dbus_run(MAIN_LOOP_SLEEP_INTERVAL);
+    if (dbus)
+    {
+      a2j_dbus_run(MAIN_LOOP_SLEEP_INTERVAL);
+    }
+    else
+    {
+      usleep(MAIN_LOOP_SLEEP_INTERVAL * 1000);
+    }
 
     if (g_started)
     {
@@ -712,10 +780,13 @@ main(
     a2j_stop();
   }
 
-  a2j_dbus_uninit();
+  if (dbus)
+  {
+    a2j_dbus_uninit();
 
-  a2j_info("Deactivated.");
-  a2j_info("----------------------------");
+    a2j_info("Deactivated.");
+    a2j_info("----------------------------");
+  }
 
 fail_uninit_log:
   a2j_log_uninit();

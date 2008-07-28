@@ -34,6 +34,7 @@ def configure(conf):
     conf.check_pkg('dbus-1', mandatory=True, pkgvars=['session_bus_services_dir'])
 
     conf.check_header('expat.h', mandatory=True)
+    conf.check_header('getopt.h', mandatory=True)
     conf.env['LIB_EXPAT'] = ['expat']
 
     if Params.g_options.enable_pkg_config_dbus_service_dir:
