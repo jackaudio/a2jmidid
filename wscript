@@ -76,6 +76,7 @@ def build(bld):
         'dbus_iface_control.c',
         'paths.c',
         #'conf.c',
+        'jack.c',
         ]
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
