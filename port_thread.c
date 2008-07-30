@@ -200,16 +200,20 @@ a2j_update_ports(
   snd_seq_addr_t addr;
   int size;
 
-  while ((size = jack_ringbuffer_read(self->port_add, (char*)&addr, sizeof(addr)))) {
-    snd_seq_port_info_t *info;
+  while ((size = jack_ringbuffer_read(self->port_add, (char *)&addr, sizeof(addr))) != 0)
+  {
+    snd_seq_port_info_t * info;
     int err;
 
     snd_seq_port_info_alloca(&info);
-    assert (size == sizeof(addr));
-    assert (addr.client != self->client_id);
-    if ((err=snd_seq_get_any_port_info(self->seq, addr.client, addr.port, info))>=0) {
+    assert(size == sizeof(addr));
+    assert(addr.client != self->client_id);
+    if ((err = snd_seq_get_any_port_info(self->seq, addr.client, addr.port, info)) >= 0)
+    {
       a2j_update_port(self, addr, info);
-    } else {
+    }
+    else
+    {
       //a2j_port_setdead(self->stream[PORT_INPUT].ports, addr);
       //a2j_port_setdead(self->stream[PORT_OUTPUT].ports, addr);
     }
