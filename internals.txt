@@ -12,7 +12,6 @@ jack_process:
  queue output events
 
 main_loop:
- wait for port_sem
  free deleted ports
  create new ports or mark existing as dead
 
@@ -24,7 +23,7 @@ main_loop:
  * port_del (port_t *)
 
 = port life cycle =
-== port birth =
+== port birth ==
  * during jack process function execution, in a2j_port_event(), event
    about port creation is received from system alsa seq client and
    port alsa seq address is written to port_add ringbuffer.
