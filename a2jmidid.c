@@ -395,7 +395,11 @@ main(
   }
   else
   {
-    a2j_start();
+    if (!a2j_start())
+    {
+      goto fail_uninit_log;
+    }
+
     a2j_info("Press ctrl-c to stop the bridge");
   }
 
