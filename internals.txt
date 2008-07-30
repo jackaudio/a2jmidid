@@ -23,6 +23,29 @@ main_loop:
  * port_add (snd_seq_addr_t)
  * port_del (port_t *)
 
+= port life cycle =
+== port birth =
+ * during jack process function execution, in a2j_port_event(), event
+   about port creation is received from system alsa seq client and
+   port alsa seq address is written to port_add ringbuffer.
+ * In main loop, a2j_update_ports() is called. a2j_update_ports()
+   reads port alsa seq address from port_add ringbuffer. If port is
+   new one and should be exported, it is created by calling
+   a2j_port_create() in a2j_update_port_type() and port pointer is
+   added to new_ports ringbuffer.
+ * during jack process function execution, in a2j_add_ports(), port
+   pointer is read from new_ports ringbuffer and port is added to port
+   hash.
+
+== port death ==
+ * during jack process function execution, in a2j_port_event(), event
+   about port destruction is received from system alsa seq client and
+   port is marked as dead.
+ * during jack process function execution, in
+   a2j_jack_process_internal() ports marked as dead are removed from
+   port hash and port address is written to port_del ringbuffer.
+ * In main loop, a2j_free_ports() is called. It pops port pointers
+   from port_del ringbuffer and frees ports.
 
 = Call graph generation =
   CFLAGS='-dr' ./waf configure
