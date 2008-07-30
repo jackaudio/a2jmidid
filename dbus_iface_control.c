@@ -84,6 +84,20 @@ a2j_dbus_get_jack_client_name(
     &jack_client_name);
 }
 
+static
+void
+a2j_dbus_map_alsa_to_jack_port(
+  struct a2j_dbus_method_call * call_ptr)
+{
+}
+
+static
+void
+a2j_dbus_map_jack_port_to_alsa(
+  struct a2j_dbus_method_call * call_ptr)
+{
+}
+
 A2J_DBUS_METHOD_ARGUMENTS_BEGIN(exit)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
@@ -94,9 +108,23 @@ A2J_DBUS_METHOD_ARGUMENTS_BEGIN(stop)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
 A2J_DBUS_METHOD_ARGUMENTS_BEGIN(is_started)
+  A2J_DBUS_METHOD_ARGUMENT("started", DBUS_TYPE_BOOLEAN_AS_STRING, A2J_DBUS_DIRECTION_OUT)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
 A2J_DBUS_METHOD_ARGUMENTS_BEGIN(get_jack_client_name)
+  A2J_DBUS_METHOD_ARGUMENT("jack_client_name", DBUS_TYPE_STRING_AS_STRING, A2J_DBUS_DIRECTION_OUT)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(map_alsa_to_jack_port)
+  A2J_DBUS_METHOD_ARGUMENT("alsa_client_id", DBUS_TYPE_UINT32_AS_STRING, A2J_DBUS_DIRECTION_IN)
+  A2J_DBUS_METHOD_ARGUMENT("alsa_port_id", DBUS_TYPE_UINT32_AS_STRING, A2J_DBUS_DIRECTION_IN)
+  A2J_DBUS_METHOD_ARGUMENT("jack_port_name", DBUS_TYPE_STRING_AS_STRING, A2J_DBUS_DIRECTION_OUT)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(map_jack_port_to_alsa)
+  A2J_DBUS_METHOD_ARGUMENT("jack_port_name", "s", A2J_DBUS_DIRECTION_IN)
+  A2J_DBUS_METHOD_ARGUMENT("alsa_client_id", DBUS_TYPE_UINT32_AS_STRING, A2J_DBUS_DIRECTION_OUT)
+  A2J_DBUS_METHOD_ARGUMENT("alsa_port_id", DBUS_TYPE_UINT32_AS_STRING, A2J_DBUS_DIRECTION_OUT)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
 A2J_DBUS_METHODS_BEGIN
@@ -105,6 +133,8 @@ A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(stop, a2j_dbus_stop)
   A2J_DBUS_METHOD_DESCRIBE(is_started, a2j_dbus_is_started)
   A2J_DBUS_METHOD_DESCRIBE(get_jack_client_name, a2j_dbus_get_jack_client_name)
+  A2J_DBUS_METHOD_DESCRIBE(map_alsa_to_jack_port, a2j_dbus_map_alsa_to_jack_port)
+  A2J_DBUS_METHOD_DESCRIBE(map_jack_port_to_alsa, a2j_dbus_map_jack_port_to_alsa)
 A2J_DBUS_METHODS_END
 
 A2J_DBUS_IFACE_BEGIN(g_a2j_iface_control, "org.gna.home.a2jmidid.control")
