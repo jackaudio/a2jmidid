@@ -25,12 +25,33 @@
 #include <jack/jack.h>
 #include <jack/ringbuffer.h>
 
+#include "list.h"
 #include "structs.h"
 #include "port.h"
 #include "port_hash.h"
 #include "log.h"
 #include "port_thread.h"
 #include "conf.h"
+
+struct a2j_port *
+a2j_find_port_by_addr(
+  struct a2j_stream * stream_ptr,
+  snd_seq_addr_t addr)
+{
+  struct list_head * node_ptr;
+  struct a2j_port * port_ptr;
+
+  list_for_each(node_ptr, &stream_ptr->list)
+  {
+    port_ptr = list_entry(node_ptr, struct a2j_port, siblings);
+    if (port_ptr->remote.client == addr.client && port_ptr->remote.port == addr.port)
+    {
+      return port_ptr;
+    }
+  }
+
+  return NULL;
+}
 
 /*
  * ==================== Port add/del handling thread ==============================
@@ -52,7 +73,7 @@ a2j_update_port_type(
 
   stream_ptr = &self->stream[type];
   alsa_mask = g_port_type[type].alsa_mask;
-  port_ptr = a2j_port_get(stream_ptr->port_hash, addr);
+  port_ptr = a2j_find_port_by_addr(stream_ptr, addr);
 
   if (port_ptr != NULL && (caps & alsa_mask) != alsa_mask)
   {
@@ -66,6 +87,7 @@ a2j_update_port_type(
     port_ptr = a2j_port_create(self, type, addr, info);
     if (port_ptr != NULL)
     {
+      list_add_tail(&port_ptr->siblings, &stream_ptr->list);
       jack_ringbuffer_write(stream_ptr->new_ports, (char *)&port_ptr, sizeof(port_ptr));
     }
   }
@@ -189,6 +211,7 @@ a2j_free_ports(
   while ((sz = jack_ringbuffer_read(ports, (char*)&port, sizeof(port)))) {
     assert (sz == sizeof(port));
     a2j_info("port deleted: %s", port->name);
+    list_del(&port->siblings);
     a2j_port_free(port);
   }
 }

@@ -25,6 +25,7 @@
 #include <jack/jack.h>
 #include <jack/ringbuffer.h>
 
+#include "list.h"
 #include "structs.h"
 #include "port_hash.h"
 

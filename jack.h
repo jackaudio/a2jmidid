@@ -38,14 +38,10 @@ a2j_do_jack_output(
   struct a2j_port * port,
   struct a2j_process_info * info);
 
-bool
-a2j_jack_client_init(
+jack_client_t *
+a2j_jack_client_create(
   struct a2j * a2j_ptr,
   const char * client_name,
   const char * server_name);
-
-void
-a2j_jack_client_uninit(
-  jack_client_t * jack_client);
 
 #endif /* #ifndef JACK_H__A455F430_D6DE_4978_AAE6_517E713FC305__INCLUDED */

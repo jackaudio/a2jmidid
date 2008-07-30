@@ -25,6 +25,7 @@
 #include <jack/midiport.h>
 #include <jack/ringbuffer.h>
 
+#include "list.h"
 #include "structs.h"
 #include "jack.h"
 #include "log.h"
@@ -332,13 +333,12 @@ a2j_jack_shutdown(
 
 #undef a2j_ptr
 
-bool
-a2j_jack_client_init(
+jack_client_t *
+a2j_jack_client_create(
   struct a2j * a2j_ptr,
   const char * client_name,
   const char * server_name)
 {
-  int error;
   jack_status_t status;
   jack_client_t * jack_client;
 
@@ -354,40 +354,12 @@ a2j_jack_client_init(
   if (!jack_client)
   {
     a2j_error("Cannot create jack client");
-    goto fail;
+    return NULL;
   }
 
   jack_set_process_callback(jack_client, a2j_jack_process, a2j_ptr);
   jack_set_freewheel_callback(jack_client, a2j_jack_freewheel, NULL);
   jack_on_shutdown(jack_client, a2j_jack_shutdown, NULL);
 
-
-  a2j_ptr->jack_client = jack_client;
-
-  if (jack_activate(jack_client))
-  {
-    a2j_error("can't activate jack client");
-    a2j_ptr->jack_client = NULL;
-    goto fail_close;
-  }
-
-  return true;
-
-fail_close:
-  error = jack_client_close(jack_client);
-  if (error != 0)
-  {
-    a2j_error("Cannot close jack client");
-  }
-
-fail:
-  return false;
-}
-
-void
-a2j_jack_client_uninit(
-  jack_client_t * jack_client)
-{
-  jack_deactivate(jack_client);
-  jack_client_close(jack_client);
+  return jack_client;
 }

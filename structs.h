@@ -36,7 +36,8 @@ struct a2j;
 
 struct a2j_port
 {
-  struct a2j_port * next;
+  struct a2j_port * next;       /* hash - jack */
+  struct list_head siblings;    /* list - main loop */
   struct a2j * a2j_ptr;
   bool is_dead;
   char name[64];
@@ -56,6 +57,7 @@ struct a2j_stream
   jack_ringbuffer_t *new_ports;
 
   a2j_port_hash_t port_hash;
+  struct list_head list;
 };
 
 struct a2j

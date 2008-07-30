@@ -32,6 +32,7 @@
 
 #include <getopt.h>
 
+#include "list.h"
 #include "structs.h"
 #include "port.h"
 #include "port_thread.h"
@@ -102,6 +103,7 @@ a2j_stream_init(
 
   str->new_ports = jack_ringbuffer_create(MAX_PORTS*sizeof(struct a2j_port*));
   snd_midi_event_new(MAX_EVENT_SIZE, &str->codec);
+  INIT_LIST_HEAD(&str->list);
 }
 
 static
@@ -117,24 +119,15 @@ a2j_stream_detach(
   struct a2j_stream * stream_ptr)
 {
   struct a2j_port * port_ptr;
-  struct a2j_port * next_port_ptr;
-  int i;
+  struct list_head * node_ptr;
 
-  a2j_free_ports(stream_ptr->new_ports);
-
-  // delete all ports from hash
-  for (i = 0 ; i < PORT_HASH_SIZE ; i++)
+  while (!list_empty(&stream_ptr->list))
   {
-    port_ptr = stream_ptr->port_hash[i];
-    stream_ptr->port_hash[i] = NULL;
-
-    while (port_ptr != NULL)
-    {
-      next_port_ptr = port_ptr->next;
-      a2j_info("port deleted: %s", port_ptr->name);
-      a2j_port_free(port_ptr);
-      port_ptr = next_port_ptr;
-    }
+    node_ptr = stream_ptr->list.next;
+    list_del(node_ptr);
+    port_ptr = list_entry(node_ptr, struct a2j_port, siblings);
+    a2j_info("port deleted: %s", port_ptr->name);
+    a2j_port_free(port_ptr);
   }
 }
 
@@ -155,7 +148,7 @@ a2j_stream_close(
 struct a2j *
 a2j_new()
 {
-  int err;
+  int error;
 
   struct a2j *self = calloc(1, sizeof(struct a2j));
   a2j_debug("midi: new");
@@ -168,7 +161,9 @@ a2j_new()
   a2j_stream_init(self, PORT_INPUT);
   a2j_stream_init(self, PORT_OUTPUT);
 
-  if ((err = snd_seq_open(&self->seq, "hw", SND_SEQ_OPEN_DUPLEX, 0)) < 0) {
+  error = snd_seq_open(&self->seq, "hw", SND_SEQ_OPEN_DUPLEX, 0);
+  if (error < 0)
+  {
     a2j_error("failed to open alsa seq");
     free(self);
     return NULL;
@@ -197,14 +192,28 @@ a2j_new()
   a2j_add_ports(&self->stream[PORT_INPUT]);
   a2j_add_ports(&self->stream[PORT_OUTPUT]);
 
-  if (!a2j_jack_client_init(self, A2J_JACK_CLIENT_NAME, g_a2j_jack_server_name))
+  self->jack_client = a2j_jack_client_create(self, A2J_JACK_CLIENT_NAME, g_a2j_jack_server_name);
+  if (self->jack_client == NULL)
   {
     free(self);
     return NULL;
   }
 
+  if (jack_activate(self->jack_client))
+  {
+    a2j_error("can't activate jack client");
+
+    error = jack_client_close(self->jack_client);
+    if (error != 0)
+    {
+      a2j_error("Cannot close jack client");
+    }
+
+    free(self);
+    return NULL;
+  }
+
   a2j_add_existing_ports(self);
-  a2j_update_ports(self);
 
   return self;
 }
@@ -214,17 +223,24 @@ void
 a2j_destroy(
   struct a2j * self)
 {
+  int error;
+
   a2j_debug("midi: delete");
 
   snd_seq_disconnect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
 
   jack_ringbuffer_reset(self->port_add);
-  a2j_free_ports(self->port_del);
+
+  jack_deactivate(self->jack_client);
 
   a2j_stream_detach(self->stream + PORT_INPUT);
   a2j_stream_detach(self->stream + PORT_OUTPUT);
 
-  a2j_jack_client_uninit(self->jack_client);
+  error = jack_client_close(self->jack_client);
+  if (error != 0)
+  {
+    a2j_error("Cannot close jack client");
+  }
 
   snd_seq_close(self->seq);
   self->seq = NULL;
