@@ -53,6 +53,26 @@ a2j_find_port_by_addr(
   return NULL;
 }
 
+struct a2j_port *
+a2j_find_port_by_jack_port_name(
+  struct a2j_stream * stream_ptr,
+  const char * jack_port)
+{
+  struct list_head * node_ptr;
+  struct a2j_port * port_ptr;
+
+  list_for_each(node_ptr, &stream_ptr->list)
+  {
+    port_ptr = list_entry(node_ptr, struct a2j_port, siblings);
+    if (strcmp(port_ptr->name, jack_port) == 0)
+    {
+      return port_ptr;
+    }
+  }
+
+  return NULL;
+}
+
 /*
  * ==================== Port add/del handling thread ==============================
  */

@@ -307,6 +307,7 @@ a2j_stop()
   a2j_info("Bridge stopping...");
 
   a2j_destroy(g_a2j);
+  g_a2j = NULL;
 
   a2j_info("Bridge stopped");
 

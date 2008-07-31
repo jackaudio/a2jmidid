@@ -106,5 +106,6 @@ struct a2j_port_type
 };
 
 extern struct a2j_port_type g_port_type[2];
+extern struct a2j * g_a2j;
 
 #endif /* #ifndef STRUCTS_H__FD2CC895_411F_4ADE_9200_50FE395EDB72__INCLUDED */
