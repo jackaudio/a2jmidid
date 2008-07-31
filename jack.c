@@ -83,13 +83,11 @@ a2j_jack_process_internal(
   struct a2j_process_info * info_ptr)
 {
   struct a2j_stream * stream_ptr;
-  port_jack_func process_func;
   int i;
   struct a2j_port ** port_ptr_ptr;
   struct a2j_port * port_ptr;
 
   stream_ptr = &self->stream[info_ptr->dir];
-  process_func = g_port_type[info_ptr->dir].jack_func;
 
   a2j_add_ports(stream_ptr);
 
@@ -103,14 +101,21 @@ a2j_jack_process_internal(
 
       port_ptr->jack_buf = jack_port_get_buffer(port_ptr->jack_port, info_ptr->nframes);
 
-      if (info_ptr->dir == PORT_INPUT)
+      if (info_ptr->dir == A2J_PORT_CAPTURE)
       {
         jack_midi_clear_buffer(port_ptr->jack_buf);
       }
 
       if (!port_ptr->is_dead)
       {
-        (*process_func)(self, port_ptr, info_ptr);
+        if (info_ptr->dir == A2J_PORT_CAPTURE)
+        {
+          a2j_do_jack_input(self, port_ptr, info_ptr);
+        }
+        else
+        {
+          a2j_do_jack_output(self, port_ptr, info_ptr);
+        }
       }
       else if (jack_ringbuffer_write_space(self->port_del) >= sizeof(port_ptr))
       {
@@ -170,8 +175,8 @@ a2j_port_event(
     jack_ringbuffer_write(self->port_add, (char*)&addr, sizeof(addr));
   } else if (ev->type == SND_SEQ_EVENT_PORT_EXIT) {
     a2j_debug("port_event: del %d:%d", addr.client, addr.port);
-    a2j_port_setdead(self->stream[PORT_INPUT].port_hash, addr);
-    a2j_port_setdead(self->stream[PORT_OUTPUT].port_hash, addr);
+    a2j_port_setdead(self->stream[A2J_PORT_CAPTURE].port_hash, addr);
+    a2j_port_setdead(self->stream[A2J_PORT_PLAYBACK].port_hash, addr);
   }
 }
 
@@ -183,7 +188,7 @@ a2j_input_event(
   struct a2j_process_info * info)
 {
   jack_midi_data_t data[MAX_EVENT_SIZE];
-  struct a2j_stream *str = &self->stream[PORT_INPUT];
+  struct a2j_stream *str = &self->stream[A2J_PORT_CAPTURE];
   long size;
   int64_t alsa_time, time_offset;
   int64_t frame_offset, event_frame;
@@ -297,7 +302,7 @@ a2j_jack_process(
   if (g_freewheeling)
     return 0;
 
-  a2j_set_process_info(&info, a2j_ptr, PORT_INPUT, nframes);
+  a2j_set_process_info(&info, a2j_ptr, A2J_PORT_CAPTURE, nframes);
   a2j_jack_process_internal(a2j_ptr, &info); 
 
   while ((res = snd_seq_event_input(a2j_ptr->seq, &event))>0) {
@@ -307,7 +312,7 @@ a2j_jack_process(
       a2j_input_event(a2j_ptr, event, &info);
   }
 
-  a2j_set_process_info(&info, a2j_ptr, PORT_OUTPUT, nframes);
+  a2j_set_process_info(&info, a2j_ptr, A2J_PORT_PLAYBACK, nframes);
   a2j_jack_process_internal(a2j_ptr, &info);
   snd_seq_drain_output(a2j_ptr->seq);
 

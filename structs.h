@@ -93,19 +93,10 @@ struct a2j_alsa_midi_event
   int size;
 };
 
-#define PORT_INPUT    0
-#define PORT_OUTPUT   1
+/* Beside enum use, these are indeces for (struct a2j).stream array */
+#define A2J_PORT_CAPTURE   0 // ALSA playback port -> JACK capture port
+#define A2J_PORT_PLAYBACK  1 // JACK playback port -> ALSA capture port
 
-typedef void (*port_jack_func)(struct a2j * self, struct a2j_port * port, struct a2j_process_info * info);
-
-struct a2j_port_type
-{
-  int alsa_mask;
-  int jack_caps;
-  port_jack_func jack_func;
-};
-
-extern struct a2j_port_type g_port_type[2];
 extern struct a2j * g_a2j;
 
 #endif /* #ifndef STRUCTS_H__FD2CC895_411F_4ADE_9200_50FE395EDB72__INCLUDED */

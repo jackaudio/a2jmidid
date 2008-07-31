@@ -98,6 +98,7 @@ a2j_port_create(
   int err;
   int client;
   snd_seq_client_info_t * client_info_ptr;
+  int jack_caps;
 
   err = snd_seq_client_info_malloc(&client_info_ptr);
   if (err != 0)
@@ -134,7 +135,7 @@ a2j_port_create(
     sizeof(port->name),
     "%s (%s): %s",
     snd_seq_client_info_get_name(client_info_ptr),
-    type == PORT_INPUT ? "capture": "playback",
+    type == A2J_PORT_CAPTURE ? "capture": "playback",
     snd_seq_port_info_get_name(info));
 
   // replace all offending characters by -
@@ -142,11 +143,22 @@ a2j_port_create(
     if (!isalnum(*c) && *c != '(' && *c != ')' && *c != ':')
       *c = ' ';
 
-  port->jack_port = jack_port_register(self->jack_client, port->name, JACK_DEFAULT_MIDI_TYPE, g_port_type[type].jack_caps, 0);
+  if (type == A2J_PORT_CAPTURE)
+  {
+    jack_caps = JackPortIsOutput;
+  }
+  else
+  {
+    jack_caps = JackPortIsInput;
+  }
+
+  jack_caps |= JackPortIsPhysical|JackPortIsTerminal;
+
+  port->jack_port = jack_port_register(self->jack_client, port->name, JACK_DEFAULT_MIDI_TYPE, jack_caps, 0);
   if (port->jack_port == JACK_INVALID_PORT)
     goto fail_free_port;
 
-  if (type == PORT_INPUT)
+  if (type == A2J_PORT_CAPTURE)
     err = a2j_alsa_connect_from(self, port->remote.client, port->remote.port);
   else
     err = snd_seq_connect_to(self->seq, self->port_id, port->remote.client, port->remote.port);

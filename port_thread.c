@@ -92,8 +92,16 @@ a2j_update_port_type(
   a2j_debug("update_port_type(%d:%d)", addr.client, addr.port);
 
   stream_ptr = &self->stream[type];
-  alsa_mask = g_port_type[type].alsa_mask;
   port_ptr = a2j_find_port_by_addr(stream_ptr, addr);
+
+  if (type == A2J_PORT_CAPTURE)
+  {
+    alsa_mask = SND_SEQ_PORT_CAP_SUBS_READ;
+  }
+  else
+  {
+    alsa_mask = SND_SEQ_PORT_CAP_SUBS_WRITE;
+  }
 
   if (port_ptr != NULL && (caps & alsa_mask) != alsa_mask)
   {
@@ -218,8 +226,8 @@ a2j_update_port(
     return;
   }
 
-  a2j_update_port_type(self, PORT_INPUT, addr, port_caps, info);
-  a2j_update_port_type(self, PORT_OUTPUT, addr, port_caps, info);
+  a2j_update_port_type(self, A2J_PORT_CAPTURE, addr, port_caps, info);
+  a2j_update_port_type(self, A2J_PORT_PLAYBACK, addr, port_caps, info);
 }
 
 void
@@ -257,8 +265,8 @@ a2j_update_ports(
     }
     else
     {
-      //a2j_port_setdead(self->stream[PORT_INPUT].ports, addr);
-      //a2j_port_setdead(self->stream[PORT_OUTPUT].ports, addr);
+      //a2j_port_setdead(self->stream[A2J_PORT_CAPTURE].ports, addr);
+      //a2j_port_setdead(self->stream[A2J_PORT_PLAYBACK].ports, addr);
     }
   }
 }

@@ -46,7 +46,6 @@
 
 #define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
 
-struct a2j_port_type g_port_type[2];
 bool g_keep_walking = true;
 static bool g_started = false;
 struct a2j * g_a2j = NULL;
@@ -158,8 +157,8 @@ a2j_new()
   self->port_add = jack_ringbuffer_create(2*MAX_PORTS*sizeof(snd_seq_addr_t));
   self->port_del = jack_ringbuffer_create(2*MAX_PORTS*sizeof(struct a2j_port*));
 
-  a2j_stream_init(self, PORT_INPUT);
-  a2j_stream_init(self, PORT_OUTPUT);
+  a2j_stream_init(self, A2J_PORT_CAPTURE);
+  a2j_stream_init(self, A2J_PORT_PLAYBACK);
 
   error = snd_seq_open(&self->seq, "hw", SND_SEQ_OPEN_DUPLEX, 0);
   if (error < 0)
@@ -181,16 +180,16 @@ a2j_new()
     self->queue = snd_seq_alloc_queue(self->seq);
     snd_seq_start_queue(self->seq, self->queue, 0); 
 
-  a2j_stream_attach(self->stream + PORT_INPUT);
-  a2j_stream_attach(self->stream + PORT_OUTPUT);
+  a2j_stream_attach(self->stream + A2J_PORT_CAPTURE);
+  a2j_stream_attach(self->stream + A2J_PORT_PLAYBACK);
 
   snd_seq_nonblock(self->seq, 1);
 
   snd_seq_connect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
   snd_seq_drop_input(self->seq);
 
-  a2j_add_ports(&self->stream[PORT_INPUT]);
-  a2j_add_ports(&self->stream[PORT_OUTPUT]);
+  a2j_add_ports(&self->stream[A2J_PORT_CAPTURE]);
+  a2j_add_ports(&self->stream[A2J_PORT_PLAYBACK]);
 
   self->jack_client = a2j_jack_client_create(self, A2J_JACK_CLIENT_NAME, g_a2j_jack_server_name);
   if (self->jack_client == NULL)
@@ -233,8 +232,8 @@ a2j_destroy(
 
   jack_deactivate(self->jack_client);
 
-  a2j_stream_detach(self->stream + PORT_INPUT);
-  a2j_stream_detach(self->stream + PORT_OUTPUT);
+  a2j_stream_detach(self->stream + A2J_PORT_CAPTURE);
+  a2j_stream_detach(self->stream + A2J_PORT_PLAYBACK);
 
   error = jack_client_close(self->jack_client);
   if (error != 0)
@@ -245,25 +244,13 @@ a2j_destroy(
   snd_seq_close(self->seq);
   self->seq = NULL;
 
-  a2j_stream_close(self, PORT_OUTPUT);
-  a2j_stream_close(self, PORT_INPUT);
+  a2j_stream_close(self, A2J_PORT_PLAYBACK);
+  a2j_stream_close(self, A2J_PORT_CAPTURE);
 
   jack_ringbuffer_free(self->port_add);
   jack_ringbuffer_free(self->port_del);
 
   free(self);
-}
-
-void
-a2j_port_type_init()
-{
-  g_port_type[PORT_INPUT].alsa_mask = SND_SEQ_PORT_CAP_SUBS_READ;
-  g_port_type[PORT_INPUT].jack_caps = JackPortIsOutput|JackPortIsPhysical|JackPortIsTerminal;
-  g_port_type[PORT_INPUT].jack_func = a2j_do_jack_input;
-
-  g_port_type[PORT_OUTPUT].alsa_mask = SND_SEQ_PORT_CAP_SUBS_WRITE;
-  g_port_type[PORT_OUTPUT].jack_caps = JackPortIsInput|JackPortIsPhysical|JackPortIsTerminal;
-  g_port_type[PORT_OUTPUT].jack_func = a2j_do_jack_output;
 }
 
 bool
@@ -377,8 +364,6 @@ main(
   {
     //a2j_conf_load();
   }
-
-  a2j_port_type_init();
 
   if (dbus)
   {

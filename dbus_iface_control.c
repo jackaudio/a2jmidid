@@ -133,12 +133,12 @@ a2j_dbus_map_alsa_to_jack_port(
 
   if (map_playback)
   {
-    stream_ptr = g_a2j->stream + PORT_OUTPUT;
+    stream_ptr = g_a2j->stream + A2J_PORT_PLAYBACK;
     direction_string = "playback";
   }
   else
   {
-    stream_ptr = g_a2j->stream + PORT_INPUT;
+    stream_ptr = g_a2j->stream + A2J_PORT_CAPTURE;
     direction_string = "capture";
   }
 
@@ -198,10 +198,10 @@ a2j_dbus_map_jack_port_to_alsa(
     return;
   }
 
-  port_ptr = a2j_find_port_by_jack_port_name(g_a2j->stream + PORT_INPUT, jack_port);
+  port_ptr = a2j_find_port_by_jack_port_name(g_a2j->stream + A2J_PORT_CAPTURE, jack_port);
   if (port_ptr == NULL)
   {
-    port_ptr = a2j_find_port_by_jack_port_name(g_a2j->stream + PORT_OUTPUT, jack_port);
+    port_ptr = a2j_find_port_by_jack_port_name(g_a2j->stream + A2J_PORT_PLAYBACK, jack_port);
     if (port_ptr == NULL)
     {
       a2j_dbus_error(call_ptr, A2J_DBUS_ERROR_UNKNOWN_PORT, "Unknown JACK port '%s'", jack_port);
