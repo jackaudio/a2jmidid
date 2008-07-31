@@ -14,11 +14,14 @@ def main():
     if len(sys.argv) == 1:
         print "Usage: %s [command] [command] ..." % os.path.basename(sys.argv[0])
         print "Commands:"
-        print "    exit        - exit a2j bridge dbus service"
-        print "    start       - start bridging"
-        print "    start       - stop brdiging"
-        print "    status      - get bridging status"
-        print "    gjcn        - get JACK client name"
+        print "    exit                        - exit a2j bridge dbus service"
+        print "    start                       - start bridging"
+        print "    start                       - stop brdiging"
+        print "    status                      - get bridging status"
+        print "    gjcn                        - get JACK client name"
+        print "    ma2jp <client_id> <port_id> - map ALSA to JACK playback port"
+        print "    ma2jc <client_id> <port_id> - map ALSA to JACK capture port"
+        print "    mj2a <jack_port_name>       - map JACK port to ALSA port"
         sys.exit(0)
     
     bus = dbus.SessionBus()
@@ -50,6 +53,38 @@ def main():
             elif arg == "gjcn":
                 print "--- get jack client name"
                 print control_iface.get_jack_client_name()
+            elif arg == 'ma2jp':
+                print "--- map ALSA to JACK playback port"
+                if index + 1 >= len(sys.argv):
+                    print "map ALSA to JACK playback port command requires ALSA client ID and ALSA port ID arguments"
+                    sys.exit()
+                client_id = sys.argv[index]
+                index += 1
+                port_id = sys.argv[index]
+                index += 1
+
+                print "'%s'" % control_iface.map_alsa_to_jack_port(client_id, port_id, True)
+            elif arg == 'ma2jc':
+                print "--- map ALSA to JACK capture port"
+                if index + 1 >= len(sys.argv):
+                    print "map ALSA to JACK capture port command requires ALSA client ID and ALSA port ID arguments"
+                    sys.exit()
+                client_id = sys.argv[index]
+                index += 1
+                port_id = sys.argv[index]
+                index += 1
+
+                print "'%s'" % control_iface.map_alsa_to_jack_port(client_id, port_id, False)
+            elif arg == 'mj2a':
+                print "--- map JACK to ALSA port"
+                if index >= len(sys.argv):
+                    print "map JACK to ALSA port command requires JACK port name argument"
+                    sys.exit()
+                jack_port = sys.argv[index]
+                index += 1
+
+                out = control_iface.map_jack_port_to_alsa(jack_port)
+                print "%u:%u ('%s':'%s')" % (int(out[0]), int(out[1]), str(out[2]), str(out[3]))
             else:
                 print "Unknown command '%s'" % arg
         except dbus.DBusException, e:
