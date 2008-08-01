@@ -333,6 +333,7 @@ void
 a2j_jack_shutdown(
   void * arg)
 {
+  a2j_warning("JACK server shutdown notification received.");
   g_keep_walking = false;
 }
 
