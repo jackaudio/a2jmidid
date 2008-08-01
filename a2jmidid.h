@@ -31,6 +31,7 @@ bool
 a2j_is_started();
 
 extern bool g_keep_walking;
+extern bool g_stop_request;
 
 #define A2J_JACK_CLIENT_NAME "a2j"
 

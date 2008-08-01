@@ -47,6 +47,7 @@
 #define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
 
 bool g_keep_walking = true;
+bool g_stop_request = false;
 static bool g_started = false;
 struct a2j * g_a2j = NULL;
 
@@ -414,6 +415,18 @@ main(
     else
     {
       usleep(MAIN_LOOP_SLEEP_INTERVAL * 1000);
+    }
+
+    if (g_stop_request)
+    {
+      g_stop_request = false;
+
+      a2j_stop();
+
+      if (!dbus)
+      {
+        break;
+      }
     }
 
     if (g_started)

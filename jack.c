@@ -334,7 +334,7 @@ a2j_jack_shutdown(
   void * arg)
 {
   a2j_warning("JACK server shutdown notification received.");
-  g_keep_walking = false;
+  g_stop_request = true;
 }
 
 #undef a2j_ptr
