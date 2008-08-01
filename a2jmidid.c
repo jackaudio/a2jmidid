@@ -238,7 +238,7 @@ a2j_destroy(
   error = jack_client_close(self->jack_client);
   if (error != 0)
   {
-    a2j_error("Cannot close jack client");
+    a2j_error("Cannot close jack client (%d)", error);
   }
 
   snd_seq_close(self->seq);
