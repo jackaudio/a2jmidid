@@ -80,7 +80,17 @@ def build(bld):
         ]
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
-    prog.uselib = 'ALSA JACK DBUS-1 EXPAT'
+    prog.uselib = 'ALSA JACK DBUS-1'
+
+    prog = bld.create_obj('cc', 'program')
+    prog.source = 'a2jmidi_bridge.c'
+    prog.target = 'a2jmidi_bridge'
+    prog.uselib = 'ALSA JACK'
+
+    prog = bld.create_obj('cc', 'program')
+    prog.source = 'j2amidi_bridge.c'
+    prog.target = 'j2amidi_bridge'
+    prog.uselib = 'ALSA JACK'
 
     # process org.gna.home.a2jmidid.service.in -> org.gna.home.a2jmidid.service
     obj = bld.create_obj('subst')
