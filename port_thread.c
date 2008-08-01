@@ -115,7 +115,6 @@ a2j_update_port_type(
     port_ptr = a2j_port_create(self, type, addr, info);
     if (port_ptr != NULL)
     {
-      list_add_tail(&port_ptr->siblings, &stream_ptr->list);
       jack_ringbuffer_write(stream_ptr->new_ports, (char *)&port_ptr, sizeof(port_ptr));
     }
   }

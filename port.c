@@ -99,6 +99,9 @@ a2j_port_create(
   int client;
   snd_seq_client_info_t * client_info_ptr;
   int jack_caps;
+  struct a2j_stream * stream_ptr;
+
+  stream_ptr = &self->stream[type];
 
   err = snd_seq_client_info_malloc(&client_info_ptr);
   if (err != 0)
@@ -143,6 +146,9 @@ a2j_port_create(
     if (!isalnum(*c) && *c != '(' && *c != ')' && *c != ':')
       *c = ' ';
 
+  /* Add port to list early, before registering to JACK, so map functionality is guaranteed to work during port registration */
+  list_add_tail(&port->siblings, &stream_ptr->list);
+
   if (type == A2J_PORT_CAPTURE)
   {
     jack_caps = JackPortIsOutput;
@@ -174,6 +180,8 @@ a2j_port_create(
   return port;
 
 fail_free_port:
+  list_del(&port->siblings);
+
   a2j_port_free(port);
 
 fail_free_client_info:
