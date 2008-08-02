@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <semaphore.h>
 #include <stdbool.h>
+#include <sys/stat.h>
 
 #include <alsa/asoundlib.h>
 
@@ -32,6 +33,7 @@
 
 #include <getopt.h>
 
+#include "config.h"
 #include "list.h"
 #include "structs.h"
 #include "port.h"
@@ -43,6 +45,7 @@
 #include "paths.h"
 #include "conf.h"
 #include "jack.h"
+#include "sigsegv.h"
 
 #define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
 
@@ -326,6 +329,13 @@ main(
   char *argv[])
 {
   bool dbus;
+	struct stat st;
+	char timestamp_str[26];
+
+	st.st_mtime = 0;
+	stat(argv[0], &st);
+	ctime_r(&st.st_mtime, timestamp_str);
+	timestamp_str[24] = 0;
 
   if (!a2j_paths_init())
   {
@@ -371,7 +381,7 @@ main(
     a2j_info("----------------------------");
   }
 
-  a2j_info("JACK MIDI <-> ALSA sequencer MIDI bridge");
+  a2j_info("JACK MIDI <-> ALSA sequencer MIDI bridge, version " A2J_VERSION ", built on %s", timestamp_str);
   a2j_info("Copyright 2006,2007 Dmitry S. Baikov");
   a2j_info("Copyright 2007,2008 Nedko Arnaudov");
 
@@ -384,6 +394,9 @@ main(
   {
     a2j_info("");
   }
+
+	/* setup our SIGSEGV magic that prints nice stack in our logfile */ 
+	setup_sigsegv();
 
   signal(SIGINT, &a2j_sigint_handler);
   signal(SIGTERM, &a2j_sigint_handler);

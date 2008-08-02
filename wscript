@@ -44,6 +44,9 @@ def configure(conf):
 
     conf.check_tool('misc')             # dbus service file subst tool
 
+    conf.define('A2J_VERSION', VERSION)
+    conf.write_config_header('config.h')
+
     print
     #display_msg("==================")
     #print
@@ -77,6 +80,7 @@ def build(bld):
         'paths.c',
         #'conf.c',
         'jack.c',
+        'sigsegv.c',
         ]
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
