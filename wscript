@@ -6,7 +6,7 @@ from Configure import g_maxlen
 import Params
 
 APPNAME='a2jmidid'
-VERSION='2'
+VERSION='3'
 
 # these variables are mandatory ('/' are converted automatically)
 srcdir = '.'
