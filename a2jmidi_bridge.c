@@ -148,7 +148,7 @@ main(int argc, char *argv[])
     snd_seq_set_client_name(seq_handle, client_name);
     if ((portid = snd_seq_create_simple_port(seq_handle, "playback",
             SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
-            SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
+            SND_SEQ_PORT_TYPE_HARDWARE)) < 0) {
         fprintf(stderr, "Error creating sequencer port.\n");
         exit(1);
     }

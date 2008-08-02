@@ -132,7 +132,7 @@ int init_alsa(const char * client_name) {
   if ((portid = snd_seq_create_simple_port(seq_handle, "capture",
 					   SND_SEQ_PORT_CAP_READ |
 					   SND_SEQ_PORT_CAP_SUBS_READ,
-					   SND_SEQ_PORT_TYPE_APPLICATION)) < 0){
+					   SND_SEQ_PORT_TYPE_HARDWARE)) < 0){
     fprintf(stderr, "Error creating sequencer port.\n");
     return 0;
   }
