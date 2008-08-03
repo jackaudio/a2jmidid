@@ -16,7 +16,7 @@ def main():
         print "Commands:"
         print "    exit                        - exit a2j bridge dbus service"
         print "    start                       - start bridging"
-        print "    start                       - stop brdiging"
+        print "    stop                        - stop brdiging"
         print "    status                      - get bridging status"
         print "    gjcn                        - get JACK client name"
         print "    ma2jp <client_id> <port_id> - map ALSA to JACK playback port"
