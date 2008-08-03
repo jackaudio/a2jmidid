@@ -25,7 +25,13 @@ else
   DEFINE=SVN_VERSION
 fi
 
-echo "#define ${DEFINE} \""`svnversion`"\"" > ${TEMP_FILE}
+REV=`svnversion 2> /dev/null`
+if test -z ${REV}
+then
+  REV="unknown"
+fi
+
+echo "#define ${DEFINE} \"${REV}\"" > ${TEMP_FILE}
 if test ! -f ${OUTPUT_FILE}
 then
   echo "Generated ${OUTPUT_FILE}"
