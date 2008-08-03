@@ -1,2 +1,16 @@
-Changes since version 1:
+= Version 3 "Bodrum" on 2008-08-03 =
+ * Improved port naming, support for bidirectional ports
+ * Allow exporting of hardware ports (disabled by default)
+ * Switch from autotools to waf
+ * Remove support for old JACK MIDI API variants
+ * Remove usage of posix semaphores that could cause sleep in realtime context, in rare circumstances
+ * D-Bus background service mode. The old manual mode is still working.
+ * Log file when running in backgorund service mode.
+ * Improved documentation
+ * Import, with slight modifications, static bridges created by Sean Bolton and Lars Luthman.
+
+= Version 2 on 2007-10-27 =
  * Improved build system (autotools) and support for older JACK variants
+
+= Version 1 on 2007-08-26 =
+ * Initial release
