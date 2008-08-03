@@ -8,7 +8,7 @@ import time
 import Task
 
 APPNAME='a2jmidid'
-VERSION='3'
+VERSION='4'
 
 # these variables are mandatory ('/' are converted automatically)
 srcdir = '.'
