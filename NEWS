@@ -1,8 +1,8 @@
-= Version 4 =
+= Version 4 "Devsirme" =
  * Fix typos in docs
  * Disable use of C++ demangling in sigsegv. Fix for sr #2074
  * Fix a2j_control help text (thanks kfoltman!)
- * Reqeest fixed JACK client name. Fix for bug #12139
+ * Request fixed JACK client name. Fix for bug #12139
  * Handle missing svnversion executable nicely. Fixes bug #12138
 
 = Version 3 "Bodrum" on 2008-08-03 =
