@@ -6,6 +6,7 @@ from Configure import g_maxlen
 import Params
 import time
 import Task
+import re
 
 APPNAME='a2jmidid'
 VERSION='4'
@@ -73,9 +74,23 @@ def configure(conf):
     conf.define('A2J_VERSION', VERSION)
     conf.write_config_header('config.h')
 
+    svnrev = None
+    if os.access('svnversion.h', os.R_OK):
+        data = file('svnversion.h').read()
+        m = re.match(r'^#define SVN_VERSION "([^"]*)"$', data)
+        if m != None:
+            svnrev = m.group(1)
+
     print
-    #display_msg("==================")
-    #print
+    display_msg("==================")
+    version_msg = "a2jmidid-" + VERSION
+    if svnrev:
+        version_msg += " exported from r" + svnrev
+    else:
+        version_msg += " svn revision will checked and eventually updated during build"
+    print version_msg
+    print
+
     display_msg("Install prefix", conf.env['PREFIX'], 'CYAN')
     display_msg('D-Bus service install directory', conf.env['DBUS_SERVICES_DIR'], 'CYAN')
     if conf.env['DBUS_SERVICES_DIR'] != conf.env['DBUS-1_SESSION_BUS_SERVICES_DIR'][0]:
@@ -93,7 +108,8 @@ def configure(conf):
     print
 
 def build(bld):
-    create_svnversion_gen(bld)
+    if not os.access('svnversion.h', os.R_OK):
+        create_svnversion_gen(bld)
 
     prog = bld.create_obj('cc', 'program')
     prog.source = [
@@ -133,3 +149,7 @@ def build(bld):
     obj.inst_dir = '/'
 
     install_files('PREFIX', 'bin', 'a2j_control', chmod=0755)
+
+def dist_hook():
+    os.remove('svnversion_regenerate.sh')
+    os.system('../svnversion_regenerate.sh svnversion.h')
