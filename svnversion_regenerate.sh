@@ -34,12 +34,12 @@ fi
 echo "#define ${DEFINE} \"${REV}\"" > ${TEMP_FILE}
 if test ! -f ${OUTPUT_FILE}
 then
-  echo "Generated ${OUTPUT_FILE}"
+  echo "Generated ${OUTPUT_FILE} (r${REV})"
   cp ${TEMP_FILE} ${OUTPUT_FILE}
   if test $? -ne 0; then exit 1; fi
 else
   if ! cmp -s ${OUTPUT_FILE} ${TEMP_FILE}
-  then echo "Regenerated ${OUTPUT_FILE}"
+  then echo "Regenerated ${OUTPUT_FILE} (r${REV})"
     cp ${TEMP_FILE} ${OUTPUT_FILE}
     if test $? -ne 0; then exit 1; fi
   fi
