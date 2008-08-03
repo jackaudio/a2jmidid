@@ -5,7 +5,7 @@
  * Remove support for old JACK MIDI API variants
  * Remove usage of posix semaphores that could cause sleep in realtime context, in rare circumstances
  * D-Bus background service mode. The old manual mode is still working.
- * Log file when running in backgorund service mode.
+ * Log file when running in background service mode.
  * Improved documentation
  * Import, with slight modifications, static bridges created by Sean Bolton and Lars Luthman.
 

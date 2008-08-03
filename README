@@ -58,7 +58,7 @@ like this:
 
 a2j_control exit
 
-You can query the bridge status using this commnad:
+You can query the bridge status using this command:
 
 a2j_control status
 
