@@ -15,7 +15,7 @@
 #include "config.h"
 #endif
 
-//#define NO_CPP_DEMANGLE
+#define NO_CPP_DEMANGLE
 #define SIGSEGV_NO_AUTO_INIT
 
 #ifndef _GNU_SOURCE
