@@ -350,11 +350,11 @@ a2j_jack_client_create(
 
   if (server_name != NULL)
   {
-    jack_client = jack_client_open(client_name, JackServerName|JackNoStartServer, &status, server_name);
+    jack_client = jack_client_open(client_name, JackServerName|JackNoStartServer|JackUseExactName, &status, server_name);
   }
   else
   {
-    jack_client = jack_client_open(client_name, JackNoStartServer, &status);
+    jack_client = jack_client_open(client_name, JackNoStartServer|JackUseExactName, &status);
   }
 
   if (!jack_client)
