@@ -5,7 +5,7 @@
 This will configure for installation to /usr/local prefix.
 If you want to use other prefix, use --prefix option:
 
-./waf configure=/usr
+./waf configure --prefix=/usr
 
 For full list of options, run:
 
