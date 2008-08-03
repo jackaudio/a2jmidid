@@ -5,6 +5,7 @@ import os
 from Configure import g_maxlen
 import Params
 import time
+import Task
 
 APPNAME='a2jmidid'
 VERSION='3'
@@ -13,16 +14,29 @@ VERSION='3'
 srcdir = '.'
 blddir = 'build'
 
-def fetch_svn_revision(path):
-    svn_revision_file = "svnrev"
-    if os.access(svn_revision_file, os.R_OK):
-         f = open(svn_revision_file, 'r')
-         return f.read()
-        
-    cmd = "LANG= "
-    cmd += "svnversion "
-    cmd += path
-    return commands.getoutput(cmd)
+def create_svnversion_gen(bld, header='svnversion.h', define=None):
+    cmd = '../svnversion_regenerate.sh ${TGT}'
+    if define:
+        cmd += " " + define
+    cls = Task.simple_task_type('svnversion', cmd, color='BLUE')
+    cls.must_run = lambda self: True
+    #cls.before = 'cxx'
+
+    def sg(self):
+        rt = Params.h_file(self.m_outputs[0].abspath(self.env()))
+        return rt
+    cls.signature = sg
+
+    #def se(self):
+    #    r = sg(self)
+    #    return (r, r, r, r, r)
+    #cls.cache_sig = property(sg, None)
+    cls.cache_sig = None
+
+    tsk = cls('svnversion', bld.env().copy())
+    tsk.m_inputs = []
+    tsk.m_outputs = [bld.path.find_or_declare(header)]
+    tsk.prio = 1 # execute this task first
 
 def display_msg(msg, status = None, color = None):
     sr = msg
@@ -78,38 +92,8 @@ def configure(conf):
         print Params.g_colors['NORMAL'],
     print
 
-import Task
-cls = Task.simple_task_type('svnversion', '../svnversion_regenerate.sh ${TGT}', color='BLUE')
-cls.must_run = lambda self: True
-cls.before = 'cxx'
-
-def sg(self):
-    rt = Params.h_file(self.m_outputs[0].abspath(self.env()))
-    return rt
-cls.signature = sg
-
-def se(self):
-    r = sg(self)
-    return (r, r, r, r, r)
-cls.cache_sig = property(sg, None)
-
 def build(bld):
-    #svnrev = bld.create_obj('command-output')
-    #svnrev.stdin = 'svnversion_regenerate.sh'
-    #svnrev.command = 'svnversion_regenerate.sh'
-    #svnrev.argv = [svnrev.output_file('svnversion.h')]
-    #svnrev.prio = 1 # execute this task first
-    # execute always
-    #svnrev.dep_vars = ['TIME']
-    #svnrev.env['TIME'] = time.time()
-    #svnrev.command_is_external = True
-
-    #os.system('./svnversion_regenerate.sh build/default/svnversion.h')
-
-    tsk = cls('svnversion', bld.env().copy())
-    tsk.m_inputs = []
-    tsk.m_outputs = [bld.path.find_or_declare('svnversion.h')]
-    tsk.prio = 1 # execute this task first
+    create_svnversion_gen(bld)
 
     prog = bld.create_obj('cc', 'program')
     prog.source = [
