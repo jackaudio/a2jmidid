@@ -271,7 +271,7 @@ a2j_start()
 
   a2j_info("Using JACK server '%s'", g_a2j_jack_server_name);
 
-  a2j_info("Hardware ports %s be expored.", g_a2j_export_hw_ports ? "will": "will not");
+  a2j_info("Hardware ports %s be exported.", g_a2j_export_hw_ports ? "will": "will not");
 
   g_a2j = a2j_new();
   if (g_a2j == NULL)
