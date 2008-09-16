@@ -24,7 +24,7 @@
 bool
 a2j_dbus_init();
 
-void
+bool
 a2j_dbus_run(
   int timeout_milliseconds);
 

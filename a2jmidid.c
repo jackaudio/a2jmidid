@@ -424,7 +424,11 @@ main(
   {
     if (dbus)
     {
-      a2j_dbus_run(MAIN_LOOP_SLEEP_INTERVAL);
+      if (!a2j_dbus_run(MAIN_LOOP_SLEEP_INTERVAL))
+      {
+        a2j_warning("Disconnect message was received from D-Bus.");
+        break;
+      }
     }
     else
     {

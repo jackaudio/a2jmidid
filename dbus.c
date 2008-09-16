@@ -327,11 +327,11 @@ fail:
   return false;
 }
 
-void
+bool
 a2j_dbus_run(
   int timeout_milliseconds)
 {
-  dbus_connection_read_write_dispatch(g_dbus_connection_ptr, timeout_milliseconds);
+  return dbus_connection_read_write_dispatch(g_dbus_connection_ptr, timeout_milliseconds);
 }
 
 void
