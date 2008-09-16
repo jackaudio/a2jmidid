@@ -27,6 +27,7 @@
 #include "dbus.h"
 #include "log.h"
 #include "dbus_internal.h"
+#include "dbus_iface_control.h"
 
 void
 a2j_dbus_error(
@@ -338,4 +339,44 @@ void
 a2j_dbus_uninit()
 {
   dbus_connection_unref(g_dbus_connection_ptr);
+}
+
+void
+a2j_dbus_signal(
+  const char * path,
+  const char * interface,
+  const char * name,
+  int type,
+  ...)
+{
+  va_list ap;
+	DBusMessage * message_ptr;
+
+  a2j_debug("Sending signal %s.%s from %s", interface, name, path);
+
+  message_ptr = dbus_message_new_signal (path, interface, name);
+
+  if (message_ptr == NULL)
+  {
+    a2j_error("Ran out of memory trying to create new signal");
+    return;
+  }
+
+  va_start(ap, type);
+  if (dbus_message_append_args_valist(message_ptr, type, ap))
+  {
+    if (!dbus_connection_send(g_dbus_connection_ptr, message_ptr, NULL))
+    {
+      a2j_error("Ran out of memory trying to queue signal");
+    }
+
+    dbus_connection_flush(g_dbus_connection_ptr);
+  }
+  else
+  {
+    a2j_error("Ran out of memory trying to append signal argument(s)");
+  }
+  va_end(ap);
+
+  dbus_message_unref(message_ptr);
 }

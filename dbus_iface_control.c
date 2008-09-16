@@ -32,6 +32,20 @@
 #include "structs.h"
 #include "port_thread.h"
 
+#define INTERFACE_NAME "org.gna.home.a2jmidid.control"
+
+void
+a2j_dbus_signal_emit_bridge_started()
+{
+  a2j_dbus_signal("/", INTERFACE_NAME, "bridge_started", DBUS_TYPE_INVALID);
+}
+
+void
+a2j_dbus_signal_emit_bridge_stopped()
+{
+  a2j_dbus_signal("/", INTERFACE_NAME, "bridge_stopped", DBUS_TYPE_INVALID);
+}
+
 static
 void
 a2j_dbus_exit(
@@ -312,6 +326,18 @@ A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(map_jack_port_to_alsa, a2j_dbus_map_jack_port_to_alsa)
 A2J_DBUS_METHODS_END
 
-A2J_DBUS_IFACE_BEGIN(g_a2j_iface_control, "org.gna.home.a2jmidid.control")
-    A2J_DBUS_IFACE_EXPOSE_METHODS
+A2J_DBUS_SIGNAL_ARGUMENTS_BEGIN(bridge_started)
+A2J_DBUS_SIGNAL_ARGUMENTS_END
+
+A2J_DBUS_SIGNAL_ARGUMENTS_BEGIN(bridge_stopped)
+A2J_DBUS_SIGNAL_ARGUMENTS_END
+
+A2J_DBUS_SIGNALS_BEGIN
+  A2J_DBUS_SIGNAL_DESCRIBE(bridge_started)
+  A2J_DBUS_SIGNAL_DESCRIBE(bridge_stopped)
+A2J_DBUS_SIGNALS_END
+
+A2J_DBUS_IFACE_BEGIN(g_a2j_iface_control, INTERFACE_NAME)
+  A2J_DBUS_IFACE_EXPOSE_METHODS
+  A2J_DBUS_IFACE_EXPOSE_SIGNALS
 A2J_DBUS_IFACE_END

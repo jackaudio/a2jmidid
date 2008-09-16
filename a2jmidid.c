@@ -47,6 +47,7 @@
 #include "jack.h"
 #include "sigsegv.h"
 #include "svnversion.h"
+#include "dbus_iface_control.h"
 
 #define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
 
@@ -281,6 +282,7 @@ a2j_start()
   }
 
   a2j_info("Bridge started");
+  a2j_dbus_signal_emit_bridge_started();
 
   g_started = true;
 
@@ -304,6 +306,7 @@ a2j_stop()
   a2j_info("Bridge stopped");
 
   g_started = false;
+  a2j_dbus_signal_emit_bridge_stopped();
 
   return true;
 }
