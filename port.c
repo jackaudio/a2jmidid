@@ -32,6 +32,9 @@
 #include "log.h"
 #include "port.h"
 
+/* This should be part of JACK API */
+#define JACK_IS_VALID_PORT_NAME_CHAR(c) (isalnum(c) || (c) == '/' || (c) == '_' || (c) == ':' || (c) == '(' || (c) == ')' || (c) == '-')
+
 static
 int
 a2j_alsa_connect_from(
@@ -143,7 +146,7 @@ a2j_port_create(
 
   // replace all offending characters by -
   for (c = port->name; *c; ++c)
-    if (!isalnum(*c) && *c != '(' && *c != ')' && *c != ':')
+    if (!JACK_IS_VALID_PORT_NAME_CHAR(*c))
       *c = ' ';
 
   /* Add port to list early, before registering to JACK, so map functionality is guaranteed to work during port registration */
@@ -158,7 +161,11 @@ a2j_port_create(
     jack_caps = JackPortIsInput;
   }
 
-  jack_caps |= JackPortIsPhysical|JackPortIsTerminal;
+  /* mark anything that looks like a hardware port as physical&terminal */
+  if (snd_seq_port_info_get_type(info) & (SND_SEQ_PORT_TYPE_HARDWARE|SND_SEQ_PORT_TYPE_PORT|SND_SEQ_PORT_TYPE_SPECIFIC))
+  {
+    jack_caps |= JackPortIsPhysical|JackPortIsTerminal;
+  }
 
   port->jack_port = jack_port_register(self->jack_client, port->name, JACK_DEFAULT_MIDI_TYPE, jack_caps, 0);
   if (port->jack_port == JACK_INVALID_PORT)
