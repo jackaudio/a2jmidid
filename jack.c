@@ -279,7 +279,7 @@ a2j_do_jack_output(
     frame_offset = (int64_t)jack_event.time + info->period_start + info->nframes - info->cur_frames;
     if (frame_offset < 0) {
       frame_offset = info->nframes + jack_event.time;
-      a2j_error("internal xrun detected: frame_offset = %lld", frame_offset);
+      a2j_error("internal xrun detected: frame_offset = %"PRId64, frame_offset);
     }
     assert (frame_offset < info->nframes*2);
 
