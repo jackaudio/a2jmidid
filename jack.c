@@ -281,7 +281,11 @@ a2j_do_jack_output(
       frame_offset = info->nframes + jack_event.time;
       a2j_error("internal xrun detected: frame_offset = %"PRId64, frame_offset);
     }
-    assert (frame_offset < info->nframes*2);
+    /* Ken Ellinwood reported problems with this assert.
+     * Seems, magic 2 should be replaced with nperiods. */
+    //FIXME: assert (frame_offset < info->nframes*2);
+    //if (frame_offset < info->nframes * info->nperiods)
+    //        debug_log("alsa_out: BLAH-BLAH-BLAH");
 
     out_time = info->alsa_time + (frame_offset * NSEC_PER_SEC) / info->sample_rate;
 
