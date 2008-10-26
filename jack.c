@@ -213,8 +213,8 @@ a2j_input_event(
     return;
 
   // fixup NoteOn with vel 0
-  if (data[0] == 0x90 && data[2] == 0x00) {
-    data[0] = 0x80;
+  if ((data[0] & 0xF0) == 0x90 && data[2] == 0x00) {
+    data[0] = 0x80 + (data[0] & 0x0F);
     data[2] = 0x40;
   }
 
