@@ -22,6 +22,9 @@
 #define DBUS_H__DB007DDB_C5CF_4E9F_B73A_C3C8AC7D47DC__INCLUDED
 
 bool
+a2j_dbus_is_available();
+
+bool
 a2j_dbus_init();
 
 bool

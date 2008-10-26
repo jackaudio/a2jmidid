@@ -259,14 +259,20 @@ a2j_dbus_run_method(
     return FALSE;
 }
 
-DBusConnection * g_dbus_connection_ptr;
-struct a2j_dbus_object_descriptor g_a2j_dbus_object_descriptor;
+static DBusConnection * g_dbus_connection_ptr;
+static struct a2j_dbus_object_descriptor g_a2j_dbus_object_descriptor;
 struct a2j_dbus_interface_descriptor * g_a2j_dbus_interfaces[] =
 {
     &g_a2j_iface_introspectable,
     &g_a2j_iface_control,
     NULL
 };
+
+bool
+a2j_dbus_is_available()
+{
+  return g_dbus_connection_ptr != NULL;
+}
 
 bool
 a2j_dbus_init()
@@ -322,6 +328,7 @@ a2j_dbus_init()
 
 fail_unref_dbus_connection:
   dbus_connection_unref(g_dbus_connection_ptr);
+  g_dbus_connection_ptr = NULL;
 
 fail:
 
@@ -339,6 +346,7 @@ void
 a2j_dbus_uninit()
 {
   dbus_connection_unref(g_dbus_connection_ptr);
+  g_dbus_connection_ptr = NULL;
 }
 
 void
@@ -353,6 +361,12 @@ a2j_dbus_signal(
 	DBusMessage * message_ptr;
 
   a2j_debug("Sending signal %s.%s from %s", interface, name, path);
+
+  if (!a2j_dbus_is_available())
+  {
+    a2j_error("Internal error: cannot send D-Bus signal without D-Bus being initialized");
+    return;
+  }
 
   message_ptr = dbus_message_new_signal (path, interface, name);
 

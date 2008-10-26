@@ -282,7 +282,11 @@ a2j_start()
   }
 
   a2j_info("Bridge started");
-  a2j_dbus_signal_emit_bridge_started();
+
+  if (a2j_dbus_is_available())
+  {
+    a2j_dbus_signal_emit_bridge_started();
+  }
 
   g_started = true;
 
@@ -306,7 +310,11 @@ a2j_stop()
   a2j_info("Bridge stopped");
 
   g_started = false;
-  a2j_dbus_signal_emit_bridge_stopped();
+
+  if (a2j_dbus_is_available())
+  {
+    a2j_dbus_signal_emit_bridge_stopped();
+  }
 
   return true;
 }
