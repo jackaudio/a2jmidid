@@ -33,7 +33,16 @@
 #include "port.h"
 
 /* This should be part of JACK API */
-#define JACK_IS_VALID_PORT_NAME_CHAR(c) (isalnum(c) || (c) == '/' || (c) == '_' || (c) == ':' || (c) == '(' || (c) == ')' || (c) == '-')
+#define JACK_IS_VALID_PORT_NAME_CHAR(c) \
+  (isalnum(c) || \
+   (c) == '/' || \
+   (c) == '_' || \
+   (c) == ':' || \
+   (c) == '(' || \
+   (c) == ')' || \
+   (c) == '-' || \
+   (c) == '[' || \
+   (c) == ']')
 
 static
 int
@@ -89,6 +98,44 @@ a2j_port_free(
   free(port);
 }
 
+void
+a2j_port_fill_name(
+  struct a2j_port * port_ptr,
+  int type,
+  snd_seq_client_info_t * client_info_ptr,
+  const snd_seq_port_info_t * port_info_ptr,
+  bool make_unique)
+{
+  char *c;
+
+  if (make_unique)
+  {
+    snprintf(
+      port_ptr->name,
+      sizeof(port_ptr->name),
+      "%s [%d] (%s): %s",
+      snd_seq_client_info_get_name(client_info_ptr),
+      snd_seq_client_info_get_client(client_info_ptr),
+      type == A2J_PORT_CAPTURE ? "capture": "playback",
+      snd_seq_port_info_get_name(port_info_ptr));
+  }
+  else
+  {
+    snprintf(
+      port_ptr->name,
+      sizeof(port_ptr->name),
+      "%s (%s): %s",
+      snd_seq_client_info_get_name(client_info_ptr),
+      type == A2J_PORT_CAPTURE ? "capture": "playback",
+      snd_seq_port_info_get_name(port_info_ptr));
+  }
+
+  // replace all offending characters with ' '
+  for (c = port_ptr->name; *c; ++c)
+    if (!JACK_IS_VALID_PORT_NAME_CHAR(*c))
+      *c = ' ';
+}
+
 struct a2j_port *
 a2j_port_create(
   struct a2j * self,
@@ -97,7 +144,6 @@ a2j_port_create(
   const snd_seq_port_info_t * info)
 {
   struct a2j_port *port;
-  char *c;
   int err;
   int client;
   snd_seq_client_info_t * client_info_ptr;
@@ -136,18 +182,7 @@ a2j_port_create(
   port->jack_port = JACK_INVALID_PORT;
   port->remote = addr;
 
-  snprintf(
-    port->name,
-    sizeof(port->name),
-    "%s (%s): %s",
-    snd_seq_client_info_get_name(client_info_ptr),
-    type == A2J_PORT_CAPTURE ? "capture": "playback",
-    snd_seq_port_info_get_name(info));
-
-  // replace all offending characters by -
-  for (c = port->name; *c; ++c)
-    if (!JACK_IS_VALID_PORT_NAME_CHAR(*c))
-      *c = ' ';
+  a2j_port_fill_name(port, type, client_info_ptr, info, true);
 
   /* Add port to list early, before registering to JACK, so map functionality is guaranteed to work during port registration */
   list_add_tail(&port->siblings, &stream_ptr->list);
@@ -169,7 +204,10 @@ a2j_port_create(
 
   port->jack_port = jack_port_register(self->jack_client, port->name, JACK_DEFAULT_MIDI_TYPE, jack_caps, 0);
   if (port->jack_port == JACK_INVALID_PORT)
+  {
+    a2j_error("jack_port_register() failed for '%s'", port->name);
     goto fail_free_port;
+  }
 
   if (type == A2J_PORT_CAPTURE)
     err = a2j_alsa_connect_from(self, port->remote.client, port->remote.port);
