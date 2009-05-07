@@ -90,8 +90,8 @@ a2j_port_free(
 {
   //snd_seq_disconnect_from(self->seq, self->port_id, port->remote.client, port->remote.port);
   //snd_seq_disconnect_to(self->seq, self->port_id, port->remote.client, port->remote.port);
-  if (port->early_events)
-    jack_ringbuffer_free(port->early_events);
+  if (port->inbound_events)
+    jack_ringbuffer_free(port->inbound_events);
   if (port->jack_port != JACK_INVALID_PORT)
     jack_port_unregister(port->a2j_ptr->jack_client, port->jack_port);
 
@@ -219,7 +219,7 @@ a2j_port_create(
     goto fail_free_port;
   }
 
-  port->early_events = jack_ringbuffer_create(MAX_EVENT_SIZE*16);
+  port->inbound_events = jack_ringbuffer_create(MAX_EVENT_SIZE*16);
 
   a2j_info("port created: %s", port->name);
   return port;

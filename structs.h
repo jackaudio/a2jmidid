@@ -22,6 +22,9 @@
 #ifndef STRUCTS_H__FD2CC895_411F_4ADE_9200_50FE395EDB72__INCLUDED
 #define STRUCTS_H__FD2CC895_411F_4ADE_9200_50FE395EDB72__INCLUDED
 
+#include <semaphore.h>
+#include <jack/midiport.h>
+
 #define JACK_INVALID_PORT NULL
 
 #define MAX_PORTS  64
@@ -44,7 +47,7 @@ struct a2j_port
   snd_seq_addr_t remote;
   jack_port_t * jack_port;
 
-  jack_ringbuffer_t * early_events; // alsa_midi_event_t + data
+  jack_ringbuffer_t * inbound_events; // alsa_midi_event_t + data
   int64_t last_out_time;
 
   void * jack_buf;
@@ -65,12 +68,18 @@ struct a2j
   jack_client_t * jack_client;
 
   snd_seq_t *seq;
+  pthread_t alsa_input_thread;
+  pthread_t alsa_output_thread;
   int client_id;
   int port_id;
   int queue;
-
+    
   jack_ringbuffer_t *port_add; // snd_seq_addr_t
   jack_ringbuffer_t *port_del; // struct a2j_port*
+  jack_ringbuffer_t * outbound_events; // struct a2j_delivery_event
+  jack_nframes_t cycle_start;
+
+  sem_t io_semaphore;
 
   struct a2j_stream stream[2];
 };
@@ -91,6 +100,17 @@ struct a2j_alsa_midi_event
 {
   int64_t time;
   int size;
+};
+
+struct a2j_delivery_event 
+{
+    /* a jack MIDI event, plus the port its destined for: everything
+       the ALSA output thread needs to deliver the event. time is
+       part of the jack_event.
+    */
+    jack_midi_event_t jack_event;
+    jack_nframes_t time; /* realtime, not offset time */
+    struct a2j_port* port;
 };
 
 /* Beside enum use, these are indeces for (struct a2j).stream array */

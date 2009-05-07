@@ -22,6 +22,7 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <pthread.h>
 
 #include <alsa/asoundlib.h>
 
@@ -154,6 +155,8 @@ struct a2j *
 a2j_new()
 {
   int error;
+  extern void* a2j_alsa_input_thread (void*);
+  extern void* a2j_alsa_output_thread (void*);
 
   struct a2j *self = calloc(1, sizeof(struct a2j));
   a2j_debug("midi: new");
@@ -162,6 +165,8 @@ a2j_new()
 
   self->port_add = jack_ringbuffer_create(2*MAX_PORTS*sizeof(snd_seq_addr_t));
   self->port_del = jack_ringbuffer_create(2*MAX_PORTS*sizeof(struct a2j_port*));
+
+  self->outbound_events = jack_ringbuffer_create(MAX_EVENT_SIZE*16*sizeof(struct a2j_delivery_event));
 
   a2j_stream_init(self, A2J_PORT_CAPTURE);
   a2j_stream_init(self, A2J_PORT_PLAYBACK);
@@ -183,8 +188,8 @@ a2j_new()
     ,SND_SEQ_PORT_TYPE_APPLICATION);
   self->client_id = snd_seq_client_id(self->seq);
 
-    self->queue = snd_seq_alloc_queue(self->seq);
-    snd_seq_start_queue(self->seq, self->queue, 0); 
+  self->queue = snd_seq_alloc_queue(self->seq);
+  snd_seq_start_queue(self->seq, self->queue, 0); 
 
   a2j_stream_attach(self->stream + A2J_PORT_CAPTURE);
   a2j_stream_attach(self->stream + A2J_PORT_PLAYBACK);
@@ -204,6 +209,12 @@ a2j_new()
     return NULL;
   }
 
+  if (sem_init (&self->io_semaphore, 0, 0) < 0) {
+	  a2j_error ("can't create IO semaphore");
+	  free (self);
+	  return NULL;
+  }
+
   if (jack_activate(self->jack_client))
   {
     a2j_error("can't activate jack client");
@@ -220,6 +231,18 @@ a2j_new()
 
   a2j_add_existing_ports(self);
 
+  if (pthread_create (&self->alsa_input_thread, NULL, a2j_alsa_input_thread, self) < 0) {
+	  fprintf (stderr, "cannot start ALSA input thread\n");
+	  free (self);
+	  return NULL;
+  }
+
+  if (pthread_create (&self->alsa_output_thread, NULL, a2j_alsa_output_thread, self) < 0) {
+	  fprintf (stderr, "cannot start ALSA output thread\n");
+	  free (self);
+	  return NULL;
+  }
+
   return self;
 }
 
@@ -229,10 +252,22 @@ a2j_destroy(
   struct a2j * self)
 {
   int error;
+  void* alsa_status;
 
   a2j_debug("midi: delete");
 
+  g_keep_walking = false;
+
+  /* do something that we need to do anyway and will wake the input thread, then join */
+
   snd_seq_disconnect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+  pthread_join (self->alsa_input_thread, &alsa_status);
+
+  /* wake output thread and join, then destroy the semaphore */
+
+  sem_post (&self->io_semaphore);
+  pthread_join (self->alsa_output_thread, &alsa_status);
+  sem_destroy (&self->io_semaphore);
 
   jack_ringbuffer_reset(self->port_add);
 
