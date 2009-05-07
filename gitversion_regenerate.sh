@@ -11,7 +11,7 @@ fi
 OUTPUT_FILE="`pwd`/${1}"
 TEMP_FILE="${OUTPUT_FILE}.tmp"
 
-#echo svnversion...
+#echo version...
 #pwd
 #echo $OUTPUT_FILE
 #echo $TEMP_FILE
@@ -23,31 +23,18 @@ if test $# -eq 2
 then
   DEFINE=${2}
 else
-  DEFINE=SVN_VERSION
+  DEFINE=GIT_VERSION
 fi
 
-if test -d .svn
+REV=$(git describe --tags HEAD 2>/dev/null | sed 's/^[^0-9]*//')
+
+if test -z "$REV"
 then
-  REV=`svnversion 2> /dev/null`
-else
-  if test -d .git
-  then
-    git status >/dev/null # updates dirty state
-    REV=`git show | grep '^ *git-svn-id:' | sed 's/.*@\([0-9]*\) .*/\1/'`
-    if test ${REV}
-    then
-      test -z "$(git diff-index --name-only HEAD)" || REV="${REV}M"
-    else
-      REV=0+`git rev-parse HEAD`
-      test -z "$(git diff-index --name-only HEAD)" || REV="${REV}-dirty"
-    fi
-  fi
+    REV=0+$(git rev-parse HEAD)
 fi
 
-if test -z ${REV}
-then
-  REV="unknown"
-fi
+test -z "$(git diff-index --name-only HEAD)" || REV="$REV-dirty"
+REV=$(expr "$REV" : v*'\(.*\)')
 
 echo "#define ${DEFINE} \"${REV}\"" > ${TEMP_FILE}
 if test ! -f ${OUTPUT_FILE}
