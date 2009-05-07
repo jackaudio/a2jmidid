@@ -3,7 +3,7 @@
  * copies MIDI events from a JACK MIDI client to an ALSA sequencer client
  *
  * Copyright (C) 2005 Lars Luthman, based on alsaseq2jackmidi.c by Sean Bolton.
- * Copyright (c) 2008 Nedko Arnaudov <nedko@arnaudov.name>
+ * Copyright (c) 2008,2009 Nedko Arnaudov <nedko@arnaudov.name>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as

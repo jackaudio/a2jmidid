@@ -2,7 +2,7 @@
  * ALSA SEQ < - > JACK MIDI bridge
  *
  * Copyright (c) 2006,2007 Dmitry S. Baikov <c0ff@konstruktiv.org>
- * Copyright (c) 2007,2008 Nedko Arnaudov <nedko@arnaudov.name>
+ * Copyright (c) 2007,2008,2009 Nedko Arnaudov <nedko@arnaudov.name>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -430,7 +430,7 @@ main(
 
   a2j_info("JACK MIDI <-> ALSA sequencer MIDI bridge, version " A2J_VERSION " (" GIT_VERSION ") built on %s", timestamp_str);
   a2j_info("Copyright 2006,2007 Dmitry S. Baikov");
-  a2j_info("Copyright 2007,2008 Nedko Arnaudov");
+  a2j_info("Copyright 2007,2008,2009 Nedko Arnaudov");
 
   if (dbus)
   {
