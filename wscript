@@ -15,11 +15,11 @@ VERSION='4'
 srcdir = '.'
 blddir = 'build'
 
-def create_svnversion_gen(bld, header='svnversion.h', define=None):
-    cmd = '../svnversion_regenerate.sh ${TGT}'
+def create_gitversion_gen(bld, header='gitversion.h', define=None):
+    cmd = '../gitversion_regenerate.sh ${TGT}'
     if define:
         cmd += " " + define
-    cls = Task.simple_task_type('svnversion', cmd, color='BLUE')
+    cls = Task.simple_task_type('gitversion', cmd, color='BLUE')
     cls.must_run = lambda self: True
     #cls.before = 'cxx'
 
@@ -34,7 +34,7 @@ def create_svnversion_gen(bld, header='svnversion.h', define=None):
     #cls.cache_sig = property(sg, None)
     cls.cache_sig = None
 
-    tsk = cls('svnversion', bld.env().copy())
+    tsk = cls('gitversion', bld.env().copy())
     tsk.m_inputs = []
     tsk.m_outputs = [bld.path.find_or_declare(header)]
     tsk.prio = 1 # execute this task first
@@ -74,20 +74,20 @@ def configure(conf):
     conf.define('A2J_VERSION', VERSION)
     conf.write_config_header('config.h')
 
-    svnrev = None
-    if os.access('svnversion.h', os.R_OK):
-        data = file('svnversion.h').read()
-        m = re.match(r'^#define SVN_VERSION "([^"]*)"$', data)
+    gitrev = None
+    if os.access('gitversion.h', os.R_OK):
+        data = file('gitversion.h').read()
+        m = re.match(r'^#define GIT_VERSION "([^"]*)"$', data)
         if m != None:
-            svnrev = m.group(1)
+            gitrev = m.group(1)
 
     print
     display_msg("==================")
     version_msg = "a2jmidid-" + VERSION
-    if svnrev:
-        version_msg += " exported from r" + svnrev
+    if gitrev:
+        version_msg += " exported from r" + gitrev
     else:
-        version_msg += " svn revision will checked and eventually updated during build"
+        version_msg += " git revision will checked and eventually updated during build"
     print version_msg
     print
 
@@ -108,8 +108,8 @@ def configure(conf):
     print
 
 def build(bld):
-    if not os.access('svnversion.h', os.R_OK):
-        create_svnversion_gen(bld)
+    if not os.access('gitversion.h', os.R_OK):
+        create_gitversion_gen(bld)
 
     prog = bld.create_obj('cc', 'program')
     prog.source = [
@@ -151,5 +151,5 @@ def build(bld):
     install_files('PREFIX', 'bin', 'a2j_control', chmod=0755)
 
 def dist_hook():
-    os.remove('svnversion_regenerate.sh')
-    os.system('../svnversion_regenerate.sh svnversion.h')
+    os.remove('gitversion_regenerate.sh')
+    os.system('../gitversion_regenerate.sh gitversion.h')
