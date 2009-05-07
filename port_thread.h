@@ -3,7 +3,7 @@
  * ALSA SEQ < - > JACK MIDI bridge
  *
  * Copyright (c) 2006,2007 Dmitry S. Baikov <c0ff@konstruktiv.org>
- * Copyright (c) 2007,2008 Nedko Arnaudov <nedko@arnaudov.name>
+ * Copyright (c) 2007,2008,2009 Nedko Arnaudov <nedko@arnaudov.name>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
