@@ -381,6 +381,8 @@ main(
   struct stat st;
   char timestamp_str[26];
 
+  //test_list_sort();
+
   st.st_mtime = 0;
   stat(argv[0], &st);
   ctime_r(&st.st_mtime, timestamp_str);

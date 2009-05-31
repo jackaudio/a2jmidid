@@ -872,3 +872,32 @@ static inline void hlist_add_after_rcu(struct hlist_node *prev,
        pos = pos->next)
 
 #endif
+
+/**
+ * __list_sort - sort the list using given comparator with merge-sort algorithm
+ * @head: is a head of the list to be sorted
+ * @member_offset: is machine offset inside the list entry structure to the
+ *                 field of type struct list_head which links that entry with
+ *                 the list.
+ */
+extern void __list_sort(struct list_head * head,
+                int member_offset,
+                int (*comparator)(void*,void*));
+
+/**
+ * list_sort - wrapper for __list_sort
+ * @head: is a head of the list to be sorted
+ * @type: is the type of list entry
+ * @member: is the name of the field inside entry that links that entry with
+ *          other entries in the list.
+ * @comaprator: function comparing two entries, should return value lesser
+ *              than 0 when the first argument is lesser than the second one.
+ */
+#define list_sort(head,type,member,comparator)                         \
+       ({                                                              \
+               __list_sort(head,                                       \
+                           offsetof(type, member),                     \
+                           (int (*)(void*, void*)) comparator);        \
+       })
+
+void test_list_sort(void);
