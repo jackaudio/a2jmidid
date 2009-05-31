@@ -210,9 +210,9 @@ a2j_new()
   }
 
   if (sem_init (&self->io_semaphore, 0, 0) < 0) {
-	  a2j_error ("can't create IO semaphore");
-	  free (self);
-	  return NULL;
+    a2j_error ("can't create IO semaphore");
+    free (self);
+    return NULL;
   }
 
   if (jack_activate(self->jack_client))
@@ -232,15 +232,15 @@ a2j_new()
   a2j_add_existing_ports(self);
 
   if (pthread_create (&self->alsa_input_thread, NULL, a2j_alsa_input_thread, self) < 0) {
-	  fprintf (stderr, "cannot start ALSA input thread\n");
-	  free (self);
-	  return NULL;
+    fprintf (stderr, "cannot start ALSA input thread\n");
+    free (self);
+    return NULL;
   }
 
   if (pthread_create (&self->alsa_output_thread, NULL, a2j_alsa_output_thread, self) < 0) {
-	  fprintf (stderr, "cannot start ALSA output thread\n");
-	  free (self);
-	  return NULL;
+    fprintf (stderr, "cannot start ALSA output thread\n");
+    free (self);
+    return NULL;
   }
 
   return self;
@@ -376,13 +376,13 @@ main(
   char *argv[])
 {
   bool dbus;
-	struct stat st;
-	char timestamp_str[26];
+  struct stat st;
+  char timestamp_str[26];
 
-	st.st_mtime = 0;
-	stat(argv[0], &st);
-	ctime_r(&st.st_mtime, timestamp_str);
-	timestamp_str[24] = 0;
+  st.st_mtime = 0;
+  stat(argv[0], &st);
+  ctime_r(&st.st_mtime, timestamp_str);
+  timestamp_str[24] = 0;
 
   if (!a2j_paths_init())
   {
@@ -442,8 +442,8 @@ main(
     a2j_info("");
   }
 
-	/* setup our SIGSEGV magic that prints nice stack in our logfile */ 
-	setup_sigsegv();
+  /* setup our SIGSEGV magic that prints nice stack in our logfile */ 
+  setup_sigsegv();
 
   signal(SIGINT, &a2j_sigint_handler);
   signal(SIGTERM, &a2j_sigint_handler);

@@ -286,8 +286,8 @@ a2j_alsa_output_thread (void *arg)
     jack_ringbuffer_get_read_vector (self->outbound_events, vec);
 
     a2j_debug ("output thread: got %d+%d events", 
-	       (vec[0].len / sizeof (struct a2j_delivery_event)),
-	       (vec[1].len / sizeof (struct a2j_delivery_event)));
+               (vec[0].len / sizeof (struct a2j_delivery_event)),
+               (vec[1].len / sizeof (struct a2j_delivery_event)));
     
     ev = (struct a2j_delivery_event*) vec[0].buf;
     limit = vec[0].len / sizeof (struct a2j_delivery_event);
@@ -326,7 +326,7 @@ a2j_alsa_output_thread (void *arg)
       snd_seq_ev_clear(&alsa_event);
       snd_midi_event_reset_encode(str->codec);
       if (!snd_midi_event_encode(str->codec, ev->jack_event.buffer, ev->jack_event.size, &alsa_event)) {
-	      continue; // invalid event
+              continue; // invalid event
       }
       
       snd_seq_ev_set_source(&alsa_event, self->port_id);
@@ -342,23 +342,23 @@ a2j_alsa_output_thread (void *arg)
       /* do we need to wait a while before delivering? */
 
       if (ev->time > now) {
-	struct timespec nanoseconds;
-	jack_nframes_t sleep_frames = ev->time - now;
-	float seconds = sleep_frames / sr;
+        struct timespec nanoseconds;
+        jack_nframes_t sleep_frames = ev->time - now;
+        float seconds = sleep_frames / sr;
 
-	/* if the gap is long enough, sleep */
+        /* if the gap is long enough, sleep */
 
-	if (seconds > 0.001) {
-	  nanoseconds.tv_sec = (time_t) seconds;
-	  nanoseconds.tv_nsec = (long) NSEC_PER_SEC * (seconds - nanoseconds.tv_sec);
-	  
-	  a2j_debug ("output thread sleeps for %.2f msec", ((double) nanoseconds.tv_nsec / NSEC_PER_SEC) * 1000.0);
+        if (seconds > 0.001) {
+          nanoseconds.tv_sec = (time_t) seconds;
+          nanoseconds.tv_nsec = (long) NSEC_PER_SEC * (seconds - nanoseconds.tv_sec);
+          
+          a2j_debug ("output thread sleeps for %.2f msec", ((double) nanoseconds.tv_nsec / NSEC_PER_SEC) * 1000.0);
 
-	  if (nanosleep (&nanoseconds, NULL) < 0) {
-	    fprintf (stderr, "BAD SLEEP\n");
-	    /* do something ? */
-	  }
-	}
+          if (nanosleep (&nanoseconds, NULL) < 0) {
+            fprintf (stderr, "BAD SLEEP\n");
+            /* do something ? */
+          }
+        }
       }
       
       /* its time to deliver */
@@ -366,7 +366,7 @@ a2j_alsa_output_thread (void *arg)
       snd_seq_drain_output (self->seq);
       now = jack_frame_time (self->jack_client);
       a2j_debug("alsa_out: written %d bytes to %s at %d, DELTA = %d", ev->jack_event.size, ev->port->name, now, 
-		(int32_t) (now - ev->time));
+                (int32_t) (now - ev->time));
     }
 
     /* release the sorted event list */
@@ -402,18 +402,18 @@ a2j_alsa_input_thread (void* arg)
       int ret;
       if ((ret = poll(pfd, npfd, 1000)) > 0) {
 
-		snd_seq_event_t *event;
+                snd_seq_event_t *event;
 
-		while (snd_seq_event_input (self->seq, &event) > 0) {
-		  if (event->source.client == SND_SEQ_CLIENT_SYSTEM) {
-		    a2j_port_event(a2j_ptr, event);
-		  } else {
-		    a2j_input_event(a2j_ptr, event);
-		  }
+                while (snd_seq_event_input (self->seq, &event) > 0) {
+                  if (event->source.client == SND_SEQ_CLIENT_SYSTEM) {
+                    a2j_port_event(a2j_ptr, event);
+                  } else {
+                    a2j_input_event(a2j_ptr, event);
+                  }
 
-		  snd_seq_free_event (event);
-		}
-	}
+                  snd_seq_free_event (event);
+                }
+        }
     }
 
     return (void*) 0;
@@ -448,13 +448,13 @@ a2j_jack_process_internal(
 
       if (!port_ptr->is_dead)
       {
-	port_ptr->jack_buf = jack_port_get_buffer(port_ptr->jack_port, nframes);
+        port_ptr->jack_buf = jack_port_get_buffer(port_ptr->jack_port, nframes);
 
-	if (dir == A2J_PORT_CAPTURE) {
+        if (dir == A2J_PORT_CAPTURE) {
           a2j_process_incoming (self, port_ptr, nframes);
-	} else {
-	  nevents += a2j_process_outgoing (self, port_ptr);
-	}
+        } else {
+          nevents += a2j_process_outgoing (self, port_ptr);
+        }
 
       } else if (jack_ringbuffer_write_space (self->port_del) >= sizeof(port_ptr)) {
 
