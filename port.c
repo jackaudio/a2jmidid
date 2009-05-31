@@ -33,15 +33,15 @@
 #include "port.h"
 
 /* This should be part of JACK API */
-#define JACK_IS_VALID_PORT_NAME_CHAR(c) \
-  (isalnum(c) || \
-   (c) == '/' || \
-   (c) == '_' || \
-   (c) == ':' || \
-   (c) == '(' || \
-   (c) == ')' || \
-   (c) == '-' || \
-   (c) == '[' || \
+#define JACK_IS_VALID_PORT_NAME_CHAR(c)         \
+  (isalnum(c) ||                                \
+   (c) == '/' ||                                \
+   (c) == '_' ||                                \
+   (c) == ':' ||                                \
+   (c) == '(' ||                                \
+   (c) == ')' ||                                \
+   (c) == '-' ||                                \
+   (c) == '[' ||                                \
    (c) == ']')
 
 static

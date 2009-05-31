@@ -180,7 +180,9 @@ a2j_new()
   }
 
   snd_seq_set_client_name(self->seq, "a2jmidid");
-  self->port_id = snd_seq_create_simple_port(self->seq, "port",
+  self->port_id = snd_seq_create_simple_port(
+    self->seq,
+    "port",
     SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_WRITE
 #ifndef DEBUG
     |SND_SEQ_PORT_CAP_NO_EXPORT
