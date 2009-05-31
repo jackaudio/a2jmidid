@@ -26,18 +26,6 @@ void
 a2j_add_ports(
   struct a2j_stream * str);
 
-void
-a2j_do_jack_input(
-  struct a2j * self,
-  struct a2j_port * port,
-  struct a2j_process_info * info);
-
-void
-a2j_do_jack_output(
-  struct a2j * self,
-  struct a2j_port * port,
-  struct a2j_process_info * info);
-
 jack_client_t *
 a2j_jack_client_create(
   struct a2j * a2j_ptr,

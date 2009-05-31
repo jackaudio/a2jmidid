@@ -125,6 +125,7 @@ def build(bld):
         #'conf.c',
         'jack.c',
         'sigsegv.c',
+        'list.c',
         ]
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
