@@ -104,13 +104,13 @@ struct a2j_alsa_midi_event
 
 struct a2j_delivery_event 
 {
-    /* a jack MIDI event, plus the port its destined for: everything
-       the ALSA output thread needs to deliver the event. time is
-       part of the jack_event.
-    */
-    jack_midi_event_t jack_event;
-    jack_nframes_t time; /* realtime, not offset time */
-    struct a2j_port* port;
+  /* a jack MIDI event, plus the port its destined for: everything
+     the ALSA output thread needs to deliver the event. time is
+     part of the jack_event.
+  */
+  jack_midi_event_t jack_event;
+  jack_nframes_t time; /* realtime, not offset time */
+  struct a2j_port* port;
 };
 
 /* Beside enum use, these are indeces for (struct a2j).stream array */

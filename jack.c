@@ -326,7 +326,7 @@ a2j_alsa_output_thread (void *arg)
       snd_seq_ev_clear(&alsa_event);
       snd_midi_event_reset_encode(str->codec);
       if (!snd_midi_event_encode(str->codec, ev->jack_event.buffer, ev->jack_event.size, &alsa_event)) {
-              continue; // invalid event
+        continue; // invalid event
       }
       
       snd_seq_ev_set_source(&alsa_event, self->port_id);
@@ -390,33 +390,33 @@ a2j_alsa_output_thread (void *arg)
 void*
 a2j_alsa_input_thread (void* arg)
 {
-    struct a2j* self = (struct a2j* ) arg;
-    int npfd;
-    struct pollfd *pfd;
+  struct a2j* self = (struct a2j* ) arg;
+  int npfd;
+  struct pollfd *pfd;
 
-    npfd = snd_seq_poll_descriptors_count(self->seq, POLLIN);
-    pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
-    snd_seq_poll_descriptors(self->seq, pfd, npfd, POLLIN);
+  npfd = snd_seq_poll_descriptors_count(self->seq, POLLIN);
+  pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
+  snd_seq_poll_descriptors(self->seq, pfd, npfd, POLLIN);
 
-    while (g_keep_walking) {
-      int ret;
-      if ((ret = poll(pfd, npfd, 1000)) > 0) {
+  while (g_keep_walking) {
+    int ret;
+    if ((ret = poll(pfd, npfd, 1000)) > 0) {
 
-                snd_seq_event_t *event;
+      snd_seq_event_t *event;
 
-                while (snd_seq_event_input (self->seq, &event) > 0) {
-                  if (event->source.client == SND_SEQ_CLIENT_SYSTEM) {
-                    a2j_port_event(a2j_ptr, event);
-                  } else {
-                    a2j_input_event(a2j_ptr, event);
-                  }
-
-                  snd_seq_free_event (event);
-                }
+      while (snd_seq_event_input (self->seq, &event) > 0) {
+        if (event->source.client == SND_SEQ_CLIENT_SYSTEM) {
+          a2j_port_event(a2j_ptr, event);
+        } else {
+          a2j_input_event(a2j_ptr, event);
         }
-    }
 
-    return (void*) 0;
+        snd_seq_free_event (event);
+      }
+    }
+  }
+
+  return (void*) 0;
 }
 
 
