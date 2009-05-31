@@ -26,7 +26,6 @@
 #include <jack/midiport.h>
 #include <jack/ringbuffer.h>
 
-#include "jslist.h"
 #include "list.h"
 #include "structs.h"
 #include "jack.h"
@@ -248,14 +247,11 @@ a2j_process_outgoing (
 }
 
 static int
-time_sorter (void* a, void* b)
+time_sorter (struct a2j_delivery_event * a, struct a2j_delivery_event * b)
 {
-  struct a2j_delivery_event* ae = (struct a2j_delivery_event*) a;
-  struct a2j_delivery_event* ab = (struct a2j_delivery_event*) b;
-  
-  if (ae->time < ab->time) {
+  if (a->time < b->time) {
     return -1;
-  } else if (ae->time > ab->time) {
+  } else if (a->time > b->time) {
     return 1;
   } 
   return 0;
@@ -267,8 +263,8 @@ a2j_alsa_output_thread (void *arg)
   struct a2j * self = (struct a2j*) arg;
   struct a2j_stream *str = &self->stream[A2J_PORT_PLAYBACK];
   int i;
-  JSList* evlist;
-  JSList* iter;
+  struct list_head evlist;
+  struct list_head * node_ptr;
   jack_ringbuffer_data_t vec[2];
   snd_seq_event_t alsa_event;
   struct a2j_delivery_event* ev;
@@ -280,8 +276,8 @@ a2j_alsa_output_thread (void *arg)
   while (g_keep_walking) {
 
     /* first, make a list of all events in the outbound_events FIFO */
-    
-    evlist = NULL;
+
+    INIT_LIST_HEAD(&evlist);
 
     jack_ringbuffer_get_read_vector (self->outbound_events, vec);
 
@@ -292,14 +288,14 @@ a2j_alsa_output_thread (void *arg)
     ev = (struct a2j_delivery_event*) vec[0].buf;
     limit = vec[0].len / sizeof (struct a2j_delivery_event);
     for (i = 0; i < limit; ++i) {
-      evlist = jack_slist_append (evlist, ev);
+      list_add_tail(&ev->siblings, &evlist);
       ev++;
     }
 
     ev = (struct a2j_delivery_event*) vec[1].buf;
     limit = vec[1].len / sizeof (struct a2j_delivery_event);
     for (i = 0; i < limit; ++i) {
-      evlist = jack_slist_append (evlist, ev);
+      list_add_tail(&ev->siblings, &evlist);
       ev++;
     }
 
@@ -313,15 +309,15 @@ a2j_alsa_output_thread (void *arg)
 
     /* now sort this list by time */
 
-    evlist = jack_slist_sort (evlist, time_sorter);
+    list_sort(&evlist, struct a2j_delivery_event, siblings, time_sorter);
 
     /* now deliver */
 
     sr = jack_get_sample_rate (self->jack_client);
 
-    for (iter = evlist; iter; iter = iter->next) {
-
-      ev = (struct a2j_delivery_event*) iter->data;
+    list_for_each(node_ptr, &evlist)
+    {
+      ev = list_entry(node_ptr, struct a2j_delivery_event, siblings);
 
       snd_seq_ev_clear(&alsa_event);
       snd_midi_event_reset_encode(str->codec);
@@ -368,10 +364,6 @@ a2j_alsa_output_thread (void *arg)
       a2j_debug("alsa_out: written %d bytes to %s at %d, DELTA = %d", ev->jack_event.size, ev->port->name, now, 
                 (int32_t) (now - ev->time));
     }
-
-    /* release the sorted event list */
-
-    jack_slist_free (evlist);
 
     /* free up space in the FIFO */
     

@@ -104,6 +104,8 @@ struct a2j_alsa_midi_event
 
 struct a2j_delivery_event 
 {
+  struct list_head siblings;
+
   /* a jack MIDI event, plus the port its destined for: everything
      the ALSA output thread needs to deliver the event. time is
      part of the jack_event.
