@@ -1,4 +1,16 @@
-= Version 4 "Devsirme" =
+= Version 5 "Athos" on 2009-06-13
+ * Fix thight loop on D-Bus disconnect
+ * D-Bus signals for bridge start and stop
+ * Fixed alsamidi "disappearing output" bug. (backport from jack1)
+ * MIDI note-off normalization fix from Dave Robillard (Backport from jack1)
+ * Removed wrong assert from alsa_seqmidi.c reported by Ken Ellinwood (Backport from jack1)
+ * Mark anything that looks like a hardware port as physical&terminal (Backport from jack1/jack2)
+ * Fix potential crash when D-Bus is not used
+ * Support for multiple ALSA clients with same name
+ * Merge midibridge changeset by Paul Davis that is expected to fix
+   midi event timing problems that some people have reported.
+
+= Version 4 "Devsirme" on 2008-08-03 =
  * Fix typos in docs
  * Disable use of C++ demangling in sigsegv. Fix for sr #2074
  * Fix a2j_control help text (thanks kfoltman!)
