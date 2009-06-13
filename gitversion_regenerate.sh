@@ -26,15 +26,9 @@ else
   DEFINE=GIT_VERSION
 fi
 
-REV=$(git describe --tags HEAD 2>/dev/null | sed 's/^[^0-9]*//')
-
-if test -z "$REV"
-then
-    REV=0+$(git rev-parse HEAD)
-fi
+REV=$(git rev-parse HEAD)
 
 test -z "$(git diff-index --name-only HEAD)" || REV="$REV-dirty"
-REV=$(expr "$REV" : v*'\(.*\)')
 
 echo "#define ${DEFINE} \"${REV}\"" > ${TEMP_FILE}
 if test ! -f ${OUTPUT_FILE}
