@@ -85,7 +85,7 @@ def configure(conf):
     display_msg("==================")
     version_msg = "a2jmidid-" + VERSION
     if gitrev:
-        version_msg += " exported from r" + gitrev
+        version_msg += " exported from " + gitrev
     else:
         version_msg += " git revision will checked and eventually updated during build"
     print version_msg
