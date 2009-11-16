@@ -27,7 +27,7 @@
 
 #define JACK_INVALID_PORT NULL
 
-#define MAX_PORTS  64
+#define MAX_PORTS  2048
 #define MAX_EVENT_SIZE 1024
 
 #define PORT_HASH_BITS 4
