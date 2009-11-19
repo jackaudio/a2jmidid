@@ -111,11 +111,14 @@ a2j_update_port_type(
 
   if (port_ptr == NULL && (caps & alsa_mask) == alsa_mask)
   {
-    assert(jack_ringbuffer_write_space(stream_ptr->new_ports) >= sizeof(port_ptr));
-    port_ptr = a2j_port_create(self, type, addr, info);
-    if (port_ptr != NULL)
-    {
-      jack_ringbuffer_write(stream_ptr->new_ports, (char *)&port_ptr, sizeof(port_ptr));
+    if(jack_ringbuffer_write_space(stream_ptr->new_ports) >= sizeof(port_ptr)) {
+      port_ptr = a2j_port_create(self, type, addr, info);
+      if (port_ptr != NULL)
+      {
+	jack_ringbuffer_write(stream_ptr->new_ports, (char *)&port_ptr, sizeof(port_ptr));
+      }
+    } else {
+      a2j_error( "dropping new port event... increase MAX_PORTS" );
     }
   }
 }

@@ -130,10 +130,12 @@ a2j_port_event(
     return;
 
   if (ev->type == SND_SEQ_EVENT_PORT_START || ev->type == SND_SEQ_EVENT_PORT_CHANGE) {
-    assert (jack_ringbuffer_write_space(self->port_add) >= sizeof(addr));
-
-    a2j_debug("port_event: add/change %d:%d", addr.client, addr.port);
-    jack_ringbuffer_write(self->port_add, (char*)&addr, sizeof(addr));
+    if (jack_ringbuffer_write_space(self->port_add) >= sizeof(addr)) {
+      a2j_debug("port_event: add/change %d:%d", addr.client, addr.port);
+      jack_ringbuffer_write(self->port_add, (char*)&addr, sizeof(addr));
+    } else {
+      a2j_error("dropping port_event: add/change %d:%d", addr.client, addr.port);
+    }
   } else if (ev->type == SND_SEQ_EVENT_PORT_EXIT) {
     a2j_debug("port_event: del %d:%d", addr.client, addr.port);
     a2j_port_setdead(self->stream[A2J_PORT_CAPTURE].port_hash, addr);
