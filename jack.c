@@ -238,6 +238,7 @@ a2j_process_outgoing (
   int written = 0;
   size_t limit;
   struct a2j_delivery_event* dev;
+  size_t gap = 0;
 
   jack_ringbuffer_get_write_vector (self->outbound_events, vec);
 
@@ -259,8 +260,12 @@ a2j_process_outgoing (
   /* anything left? use the second part of the vector, as much as possible */
 
   if (i < nevents) {
+    if( vec[0].len )
+	gap = vec[0].len - written*sizeof (struct a2j_delivery_event);
     dev = (struct a2j_delivery_event*) vec[1].buf;
+
     limit += (vec[1].len / sizeof (struct a2j_delivery_event));
+    limit = (limit > nevents ? nevents : limit);
 
     while (i < limit) {
       jack_midi_event_get (&dev->jack_event, port->jack_buf, i);
@@ -272,9 +277,10 @@ a2j_process_outgoing (
     } 
   }
 
+  a2j_debug( "done pushing events: %d ... gap: %d ", (int)written, (int)gap );
   /* clear JACK port buffer; advance ring buffer ptr */
 
-  jack_ringbuffer_write_advance (self->outbound_events, written * sizeof (struct a2j_delivery_event));
+  jack_ringbuffer_write_advance (self->outbound_events, written * sizeof (struct a2j_delivery_event) + gap);
 
   return nevents;
 }
@@ -307,7 +313,6 @@ a2j_alsa_output_thread (void *arg)
   int limit;
 
   while (g_keep_walking) {
-
     /* first, make a list of all events in the outbound_events FIFO */
 
     INIT_LIST_HEAD(&evlist);
@@ -332,7 +337,7 @@ a2j_alsa_output_thread (void *arg)
       ev++;
     }
 
-    if (vec[0].len + vec[1].len == 0) {
+    if (vec[0].len < sizeof(struct a2j_delivery_event) && (vec[1].len == 0)) {
       /* no events: wait for some */
       a2j_debug ("output thread: wait for events");
       sem_wait (&self->io_semaphore);
