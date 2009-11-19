@@ -180,10 +180,41 @@ a2j_input_event(
 
   if (jack_ringbuffer_write_space(port->inbound_events) >= (sizeof(struct a2j_alsa_midi_event) + size)) {
     struct a2j_alsa_midi_event ev;
+    char *ev_charp = (char*) &ev;
+    size_t limit;
+    size_t to_write = sizeof(ev);
+
+    jack_ringbuffer_data_t vec[2];
+    jack_ringbuffer_get_write_vector( port->inbound_events, vec );
     ev.time = now;
     ev.size = size;
-    jack_ringbuffer_write(port->inbound_events, (char*)&ev, sizeof(ev));
-    jack_ringbuffer_write(port->inbound_events, (char*)data, size);
+
+    
+    limit = (to_write > vec[0].len ? vec[0].len : to_write);
+    if( limit ) {
+	memcpy( vec[0].buf, ev_charp, limit );
+	to_write -= limit;
+	ev_charp += limit;
+	vec[0].buf += limit;
+	vec[0].len -= limit;
+    }
+    if( to_write ) {
+	memcpy( vec[1].buf, ev_charp, to_write );
+	vec[1].buf += to_write;
+	vec[1].len -= to_write;
+    }
+
+    to_write = size;
+    ev_charp = data;
+    limit = (to_write > vec[0].len ? vec[0].len : to_write);
+    if( limit )
+	memcpy( vec[0].buf, ev_charp, limit );
+    to_write -= limit;
+    ev_charp += limit;
+    if( to_write )
+	memcpy( vec[1].buf, ev_charp, to_write );
+
+    jack_ringbuffer_write_advance( port->inbound_events, sizeof(ev) + size );
   } else {
     a2j_error ("MIDI data lost (incoming event buffer full): %ld bytes lost", size);
   }
