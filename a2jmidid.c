@@ -447,7 +447,10 @@ main(
   }
 
   /* setup our SIGSEGV magic that prints nice stack in our logfile */ 
-  setup_sigsegv();
+  if (dbus)
+  {
+    setup_sigsegv();
+  }
 
   signal(SIGINT, &a2j_sigint_handler);
   signal(SIGTERM, &a2j_sigint_handler);
