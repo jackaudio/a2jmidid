@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# This script access a2jmidid over dbus
+# and behaves as a2jmidid in non-dbus mode
+#
+
+a2j_control start
+trap "a2j_control stop; exit" SIGINT SIGTERM
+read

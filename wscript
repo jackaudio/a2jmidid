@@ -150,6 +150,7 @@ def build(bld):
     obj.inst_dir = '/'
 
     install_files('PREFIX', 'bin', 'a2j_control', chmod=0755)
+    install_files('PREFIX', 'bin', 'a2j', chmod=0755)
 
 def dist_hook():
     os.remove('gitversion_regenerate.sh')
