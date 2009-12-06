@@ -22,6 +22,8 @@ def main():
         print "    ma2jp <client_id> <port_id> - map ALSA to JACK playback port"
         print "    ma2jc <client_id> <port_id> - map ALSA to JACK capture port"
         print "    mj2a <jack_port_name>       - map JACK port to ALSA port"
+        print "    ehw                         - enable export of hardware ports"
+        print "    dhw                         - disable export of hardware ports"
         sys.exit(0)
     
     bus = dbus.SessionBus()
@@ -85,6 +87,12 @@ def main():
 
                 out = control_iface.map_jack_port_to_alsa(jack_port)
                 print "%u:%u ('%s':'%s')" % (int(out[0]), int(out[1]), str(out[2]), str(out[3]))
+            elif arg == 'ehw':
+                print "--- enable export of hardware ports"
+                control_iface.set_hw_export(True)
+            elif arg == 'dhw':
+                print "--- disable export of hardware ports"
+                control_iface.set_hw_export(False)
             else:
                 print "Unknown command '%s'" % arg
         except dbus.DBusException, e:

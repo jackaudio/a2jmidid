@@ -4,6 +4,14 @@
 # and behaves as a2jmidid in non-dbus mode
 #
 
+if test $# -eq 1 -a x$1 = x-e
+then
+    echo "hardware ports export"
+    a2j_control ehw
+else
+    a2j_control dhw
+fi
+
 a2j_control start
 trap "a2j_control stop; exit" SIGINT SIGTERM
 read

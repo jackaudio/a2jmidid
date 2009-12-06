@@ -31,6 +31,7 @@
 #include "list.h"
 #include "structs.h"
 #include "port_thread.h"
+#include "conf.h"
 
 #define INTERFACE_NAME "org.gna.home.a2jmidid.control"
 
@@ -52,6 +53,35 @@ a2j_dbus_exit(
   struct a2j_dbus_method_call * call_ptr)
 {
 	g_keep_walking = false;
+}
+
+static void a2j_dbus_set_hw_export(struct a2j_dbus_method_call * call_ptr)
+{
+  DBusError error;
+  dbus_bool_t hw_export;
+
+  if (a2j_is_started())
+  {
+    a2j_dbus_error(call_ptr, A2J_DBUS_ERROR_BRIDGE_RUNNING, "Bridge is started");
+    return;
+  }
+
+  dbus_error_init(&error);
+
+  if (!dbus_message_get_args(
+        call_ptr->message,
+        &error,
+        DBUS_TYPE_BOOLEAN, &hw_export,
+        DBUS_TYPE_INVALID))
+  {
+    a2j_dbus_error(call_ptr, A2J_DBUS_ERROR_INVALID_ARGS, "Invalid arguments to method \"%s\"", call_ptr->method_name);
+    dbus_error_free(&error);
+    return;
+  }
+
+  g_a2j_export_hw_ports = hw_export;
+
+  a2j_info("Hardware ports %s be exported.", g_a2j_export_hw_ports ? "will": "will not");
 }
 
 static
@@ -316,6 +346,10 @@ A2J_DBUS_METHOD_ARGUMENTS_BEGIN(map_jack_port_to_alsa)
   A2J_DBUS_METHOD_ARGUMENT("alsa_port_name", DBUS_TYPE_STRING_AS_STRING, A2J_DBUS_DIRECTION_OUT)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(set_hw_export)
+  A2J_DBUS_METHOD_ARGUMENT("hw_export", DBUS_TYPE_BOOLEAN_AS_STRING, A2J_DBUS_DIRECTION_IN)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
 A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(exit, a2j_dbus_exit)
   A2J_DBUS_METHOD_DESCRIBE(start, a2j_dbus_start)
@@ -324,6 +358,7 @@ A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(get_jack_client_name, a2j_dbus_get_jack_client_name)
   A2J_DBUS_METHOD_DESCRIBE(map_alsa_to_jack_port, a2j_dbus_map_alsa_to_jack_port)
   A2J_DBUS_METHOD_DESCRIBE(map_jack_port_to_alsa, a2j_dbus_map_jack_port_to_alsa)
+  A2J_DBUS_METHOD_DESCRIBE(set_hw_export, a2j_dbus_set_hw_export)
 A2J_DBUS_METHODS_END
 
 A2J_DBUS_SIGNAL_ARGUMENTS_BEGIN(bridge_started)

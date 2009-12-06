@@ -174,6 +174,7 @@ struct a2j_dbus_interface_descriptor iface_var =                                
 #define A2J_DBUS_ERROR_INVALID_ARGS                A2J_DBUS_SERVICE_NAME ".error.invalid_args"
 #define A2J_DBUS_ERROR_UNKNOWN_PORT                A2J_DBUS_SERVICE_NAME ".error.unknown_port"
 #define A2J_DBUS_ERROR_BRIDGE_NOT_RUNNING          A2J_DBUS_SERVICE_NAME ".error.bridge_not_running"
+#define A2J_DBUS_ERROR_BRIDGE_RUNNING              A2J_DBUS_SERVICE_NAME ".error.bridge_running"
 
 void
 a2j_dbus_error(
