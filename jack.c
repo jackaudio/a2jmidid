@@ -205,7 +205,7 @@ a2j_input_event(
     }
 
     to_write = size;
-    ev_charp = data;
+    ev_charp = (char *)data;
     limit = (to_write > vec[0].len ? vec[0].len : to_write);
     if( limit )
         memcpy( vec[0].buf, ev_charp, limit );
