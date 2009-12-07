@@ -126,6 +126,15 @@ fail_no_mem:
     a2j_error("Ran out of memory trying to construct method return");
 }
 
+void a2j_dbus_construct_method_return_void(struct a2j_dbus_method_call * call_ptr)
+{
+    call_ptr->reply = dbus_message_new_method_return(call_ptr->message);
+    if (call_ptr->reply == NULL)
+    {
+      a2j_error("Ran out of memory trying to construct method return");
+    }
+}
+
 #define descriptor_ptr ((struct a2j_dbus_object_descriptor *)data)
 
 DBusHandlerResult

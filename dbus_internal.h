@@ -194,6 +194,8 @@ a2j_dbus_construct_method_return_single(
     int type,
     void * arg_ptr);
 
+void a2j_dbus_construct_method_return_void(struct a2j_dbus_method_call * call_ptr);
+
 void
 a2j_dbus_signal(
   const char * path,

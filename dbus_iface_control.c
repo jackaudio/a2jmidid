@@ -53,6 +53,7 @@ a2j_dbus_exit(
   struct a2j_dbus_method_call * call_ptr)
 {
 	g_keep_walking = false;
+  a2j_dbus_construct_method_return_void(call_ptr);
 }
 
 static void a2j_dbus_set_hw_export(struct a2j_dbus_method_call * call_ptr)
@@ -82,6 +83,8 @@ static void a2j_dbus_set_hw_export(struct a2j_dbus_method_call * call_ptr)
   g_a2j_export_hw_ports = hw_export;
 
   a2j_info("Hardware ports %s be exported.", g_a2j_export_hw_ports ? "will": "will not");
+
+  a2j_dbus_construct_method_return_void(call_ptr);
 }
 
 static
@@ -93,6 +96,10 @@ a2j_dbus_start(
   {
     a2j_dbus_error(call_ptr, A2J_DBUS_ERROR_GENERIC, "a2j_start() failed.");
   }
+  else
+  {
+    a2j_dbus_construct_method_return_void(call_ptr);
+  }
 }
 
 static
@@ -103,6 +110,10 @@ a2j_dbus_stop(
 	if (!a2j_stop())
   {
     a2j_dbus_error(call_ptr, A2J_DBUS_ERROR_GENERIC, "a2j_stop() failed.");
+  }
+  else
+  {
+    a2j_dbus_construct_method_return_void(call_ptr);
   }
 }
 
