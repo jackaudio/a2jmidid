@@ -192,27 +192,27 @@ a2j_input_event(
     
     limit = (to_write > vec[0].len ? vec[0].len : to_write);
     if( limit ) {
-	memcpy( vec[0].buf, ev_charp, limit );
-	to_write -= limit;
-	ev_charp += limit;
-	vec[0].buf += limit;
-	vec[0].len -= limit;
+        memcpy( vec[0].buf, ev_charp, limit );
+        to_write -= limit;
+        ev_charp += limit;
+        vec[0].buf += limit;
+        vec[0].len -= limit;
     }
     if( to_write ) {
-	memcpy( vec[1].buf, ev_charp, to_write );
-	vec[1].buf += to_write;
-	vec[1].len -= to_write;
+        memcpy( vec[1].buf, ev_charp, to_write );
+        vec[1].buf += to_write;
+        vec[1].len -= to_write;
     }
 
     to_write = size;
     ev_charp = data;
     limit = (to_write > vec[0].len ? vec[0].len : to_write);
     if( limit )
-	memcpy( vec[0].buf, ev_charp, limit );
+        memcpy( vec[0].buf, ev_charp, limit );
     to_write -= limit;
     ev_charp += limit;
     if( to_write )
-	memcpy( vec[1].buf, ev_charp, to_write );
+        memcpy( vec[1].buf, ev_charp, to_write );
 
     jack_ringbuffer_write_advance( port->inbound_events, sizeof(ev) + size );
   } else {
@@ -261,7 +261,7 @@ a2j_process_outgoing (
 
   if (i < nevents) {
     if( vec[0].len )
-	gap = vec[0].len - written*sizeof (struct a2j_delivery_event);
+        gap = vec[0].len - written*sizeof (struct a2j_delivery_event);
     dev = (struct a2j_delivery_event*) vec[1].buf;
 
     limit += (vec[1].len / sizeof (struct a2j_delivery_event));
