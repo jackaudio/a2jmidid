@@ -1,3 +1,9 @@
+= Version 6 "Indzhe Voyvoda"
+ * MIDI processing improvements
+ * Handle large number of ports
+ * a2j script (non-dbus-like behaviour for dbus environment)
+ * allow tweaking through dbus of the hardware port export option
+
 = Version 5 "Athos" on 2009-06-13
  * Fix thight loop on D-Bus disconnect
  * D-Bus signals for bridge start and stop
