@@ -312,7 +312,7 @@ a2j_alsa_output_thread (void *arg)
   int err;
   int limit;
 
-  while (g_keep_walking) {
+  while (g_keep_alsa_walking) {
     /* first, make a list of all events in the outbound_events FIFO */
 
     INIT_LIST_HEAD(&evlist);
@@ -428,7 +428,7 @@ a2j_alsa_input_thread (void* arg)
   pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
   snd_seq_poll_descriptors(self->seq, pfd, npfd, POLLIN);
 
-  while (g_keep_walking) {
+  while (g_keep_alsa_walking) {
     int ret;
     if ((ret = poll(pfd, npfd, 1000)) > 0) {
 

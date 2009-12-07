@@ -53,6 +53,7 @@
 #define MAIN_LOOP_SLEEP_INTERVAL 50 // in milliseconds
 
 bool g_keep_walking = true;
+bool g_keep_alsa_walking = false;
 bool g_stop_request = false;
 static bool g_started = false;
 struct a2j * g_a2j = NULL;
@@ -233,6 +234,8 @@ a2j_new()
 
   a2j_add_existing_ports(self);
 
+  g_keep_alsa_walking = true;
+
   if (pthread_create (&self->alsa_input_thread, NULL, a2j_alsa_input_thread, self) < 0) {
     fprintf (stderr, "cannot start ALSA input thread\n");
     free (self);
@@ -258,7 +261,7 @@ a2j_destroy(
 
   a2j_debug("midi: delete");
 
-  g_keep_walking = false;
+  g_keep_alsa_walking = false;  /* tell alsa threads to stop */
 
   /* do something that we need to do anyway and will wake the input thread, then join */
 
