@@ -132,6 +132,7 @@ a2j_update_port(
   unsigned int port_caps = snd_seq_port_info_get_capability(info);
   unsigned int port_type = snd_seq_port_info_get_type(info);
 
+  a2j_debug("port %u:%u", addr.client, addr.port);
   a2j_debug("port type: 0x%08X", port_type);
   a2j_debug("port caps: 0x%08X", port_caps);
 
