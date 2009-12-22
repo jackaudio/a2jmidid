@@ -13,5 +13,5 @@ else
 fi
 
 a2j_control start
-trap "a2j_control stop; exit" SIGINT SIGTERM
-read
+trap "a2j_control stop; exit" INT TERM
+read unused
