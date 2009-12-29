@@ -1,4 +1,4 @@
-= Version 6 "Indzhe Voyvoda"
+= Version 6 "Indzhe Voyvoda" on 2009-12-29
  * MIDI processing improvements
  * Handle large number of ports
  * a2j script (non-dbus-like behaviour for dbus environment)
