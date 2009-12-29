@@ -33,6 +33,7 @@
 #include "port_hash.h"
 #include "port.h"
 #include "a2jmidid.h"
+#include "port_thread.h"
 
 static bool g_freewheeling = false;
 
@@ -426,24 +427,56 @@ void * a2j_alsa_output_thread(void * arg)
 
 void * a2j_alsa_input_thread(void * arg)
 {
-  struct a2j* self = (struct a2j* ) arg;
+  struct a2j * self = arg;
   int npfd;
-  struct pollfd *pfd;
+  struct pollfd * pfd;
+  snd_seq_addr_t addr;
+  snd_seq_client_info_t * client_info;
+  snd_seq_port_info_t * port_info;
+  bool initial;
+  snd_seq_event_t * event;
+  int ret;
 
   npfd = snd_seq_poll_descriptors_count(self->seq, POLLIN);
   pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
   snd_seq_poll_descriptors(self->seq, pfd, npfd, POLLIN);
 
-  while (g_keep_alsa_walking) {
-    int ret;
-    if ((ret = poll(pfd, npfd, 1000)) > 0) {
+  initial = true;
+  while (g_keep_alsa_walking)
+  {
+    if ((ret = poll(pfd, npfd, 1000)) > 0)
+    {
 
-      snd_seq_event_t *event;
+      while (snd_seq_event_input (self->seq, &event) > 0)
+      {
+        if (initial)
+        {
+          snd_seq_client_info_alloca(&client_info);
+          snd_seq_port_info_alloca(&port_info);
+          snd_seq_client_info_set_client(client_info, -1);
+          while (snd_seq_query_next_client(self->seq, client_info) >= 0)
+          {
+            addr.client = snd_seq_client_info_get_client(client_info);
+            if (addr.client == SND_SEQ_CLIENT_SYSTEM || addr.client == self->client_id)
+              continue;
+            snd_seq_port_info_set_client(port_info, addr.client);
+            snd_seq_port_info_set_port(port_info, -1);
+            while (snd_seq_query_next_port(self->seq, port_info) >= 0)
+            {
+              addr.port = snd_seq_port_info_get_port(port_info);
+              a2j_update_port(self, addr, port_info);
+            }
+          }
 
-      while (snd_seq_event_input (self->seq, &event) > 0) {
-        if (event->source.client == SND_SEQ_CLIENT_SYSTEM) {
+          initial = false;
+        }
+
+        if (event->source.client == SND_SEQ_CLIENT_SYSTEM)
+        {
           a2j_port_event(a2j_ptr, event);
-        } else {
+        }
+        else
+        {
           a2j_input_event(a2j_ptr, event);
         }
 
