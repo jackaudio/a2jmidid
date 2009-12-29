@@ -40,14 +40,13 @@ static bool g_freewheeling = false;
  * =================== Input/output port handling =========================
  */
 
-void
-a2j_add_ports(
-  struct a2j_stream * str)
+void a2j_add_ports(struct a2j_stream * str)
 {
-  struct a2j_port *port;
-  while (jack_ringbuffer_read(str->new_ports, (char*)&port, sizeof(port))) {
-    a2j_debug("jack: inserted port %s", port->name);
-    a2j_port_insert(str->port_hash, port);
+  struct a2j_port * port_ptr;
+  while (jack_ringbuffer_read(str->new_ports, (char *)&port_ptr, sizeof(port_ptr)))
+  {
+    a2j_debug("jack: inserted port %s", port_ptr->name);
+    a2j_port_insert(str->port_hash, port_ptr);
   }
 }
 
@@ -301,8 +300,7 @@ time_sorter (struct a2j_delivery_event * a, struct a2j_delivery_event * b)
   return 0;
 }
 
-void*
-a2j_alsa_output_thread (void *arg)
+void * a2j_alsa_output_thread(void * arg)
 {
   struct a2j * self = (struct a2j*) arg;
   struct a2j_stream *str = &self->stream[A2J_PORT_PLAYBACK];
@@ -422,8 +420,7 @@ a2j_alsa_output_thread (void *arg)
 
 /* ALSA */
 
-void*
-a2j_alsa_input_thread (void* arg)
+void * a2j_alsa_input_thread(void * arg)
 {
   struct a2j* self = (struct a2j* ) arg;
   int npfd;
@@ -471,7 +468,7 @@ a2j_jack_process_internal(
   int nevents = 0;
 
   stream_ptr = &self->stream[dir];
-  a2j_add_ports (stream_ptr);
+  a2j_add_ports(stream_ptr);
 
   // process ports
   for (i = 0 ; i < PORT_HASH_SIZE ; i++)
