@@ -367,7 +367,8 @@ void * a2j_alsa_output_thread(void * arg)
 
       snd_seq_ev_clear(&alsa_event);
       snd_midi_event_reset_encode(str->codec);
-      if (!snd_midi_event_encode(str->codec, ev->midistring, ev->jack_event.size, &alsa_event)) {
+      if (!snd_midi_event_encode(str->codec, (const unsigned char *)ev->midistring, ev->jack_event.size, &alsa_event))
+      {
         continue; // invalid event
       }
       
