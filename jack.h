@@ -22,9 +22,7 @@
 #ifndef JACK_H__A455F430_D6DE_4978_AAE6_517E713FC305__INCLUDED
 #define JACK_H__A455F430_D6DE_4978_AAE6_517E713FC305__INCLUDED
 
-void
-a2j_add_ports(
-  struct a2j_stream * str);
+void a2j_add_ports(struct a2j_stream * str);
 
 jack_client_t *
 a2j_jack_client_create(

@@ -21,14 +21,12 @@
 #ifndef A2JMIDID_H__A9B1D7AF_8702_48D4_899B_86B25FA4F54C__INCLUDED
 #define A2JMIDID_H__A9B1D7AF_8702_48D4_899B_86B25FA4F54C__INCLUDED
 
-bool
-a2j_start();
+bool a2j_start(void);
+bool a2j_stop(void);
+bool a2j_is_started(void);
 
-bool
-a2j_stop();
-
-bool
-a2j_is_started();
+void * a2j_alsa_input_thread(void * arg);
+void * a2j_alsa_output_thread(void * arg);
 
 extern bool g_keep_walking;
 extern bool g_keep_alsa_walking;

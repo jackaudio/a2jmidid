@@ -101,16 +101,23 @@ a2j_sigint_handler(
 }
 
 static
-void
+bool
 a2j_stream_init(
   struct a2j * self,
   int dir)
 {
   struct a2j_stream *str = &self->stream[dir];
 
-  str->new_ports = jack_ringbuffer_create(MAX_PORTS*sizeof(struct a2j_port*));
+  str->new_ports = jack_ringbuffer_create(MAX_PORTS * sizeof(struct a2j_port *));
+  if (str->new_ports == NULL)
+  {
+    return false;
+  }
+
   snd_midi_event_new(MAX_EVENT_SIZE, &str->codec);
   INIT_LIST_HEAD(&str->list);
+
+  return true;
 }
 
 static
@@ -152,35 +159,61 @@ a2j_stream_close(
     jack_ringbuffer_free(str->new_ports);
 }
 
-struct a2j *
-a2j_new()
+struct a2j * a2j_new(void)
 {
   int error;
-  extern void* a2j_alsa_input_thread (void*);
-  extern void* a2j_alsa_output_thread (void*);
+  void * thread_status;
 
   struct a2j *self = calloc(1, sizeof(struct a2j));
   a2j_debug("midi: new");
   if (!self)
-    return NULL;
+  {
+    a2j_error("calloc() failed to allocate a2j struct");
+    goto fail;
+  }
 
-  self->port_add = jack_ringbuffer_create(2*MAX_PORTS*sizeof(snd_seq_addr_t));
-  self->port_del = jack_ringbuffer_create(2*MAX_PORTS*sizeof(struct a2j_port*));
+  self->port_add = jack_ringbuffer_create(2 * MAX_PORTS * sizeof(snd_seq_addr_t));
+  if (self->port_add == NULL)
+  {
+    goto free_self;
+  }
 
-  self->outbound_events = jack_ringbuffer_create(MAX_EVENT_SIZE*16*sizeof(struct a2j_delivery_event));
+  self->port_del = jack_ringbuffer_create(2 * MAX_PORTS * sizeof(struct a2j_port *));
+  if (self->port_del == NULL)
+  {
+    goto free_ringbuffer_add;
+  }
 
-  a2j_stream_init(self, A2J_PORT_CAPTURE);
-  a2j_stream_init(self, A2J_PORT_PLAYBACK);
+  self->outbound_events = jack_ringbuffer_create(MAX_EVENT_SIZE * 16 * sizeof(struct a2j_delivery_event));
+  if (self->outbound_events == NULL)
+  {
+    goto free_ringbuffer_del;
+  }
+
+  if (!a2j_stream_init(self, A2J_PORT_CAPTURE))
+  {
+    goto free_ringbuffer_outbound;
+  }
+
+  if (!a2j_stream_init(self, A2J_PORT_PLAYBACK))
+  {
+    goto close_capture_stream;
+  }
 
   error = snd_seq_open(&self->seq, "hw", SND_SEQ_OPEN_DUPLEX, 0);
   if (error < 0)
   {
     a2j_error("failed to open alsa seq");
-    free(self);
-    return NULL;
+    goto close_playback_stream;
   }
 
-  snd_seq_set_client_name(self->seq, "a2jmidid");
+  error = snd_seq_set_client_name(self->seq, "a2jmidid");
+  if (error < 0)
+  {
+    a2j_error("snd_seq_set_client_name() failed");
+    goto close_seq_client;
+  }
+
   self->port_id = snd_seq_create_simple_port(
     self->seq,
     "port",
@@ -189,17 +222,45 @@ a2j_new()
     |SND_SEQ_PORT_CAP_NO_EXPORT
 #endif
     ,SND_SEQ_PORT_TYPE_APPLICATION);
+  if (self->port_id < 0)
+  {
+    a2j_error("snd_seq_create_simple_port() failed");
+    goto close_seq_client;
+  }
+
   self->client_id = snd_seq_client_id(self->seq);
+  if (self->client_id < 0)
+  {
+    a2j_error("snd_seq_client_id() failed");
+    goto close_seq_client;
+  }
 
   self->queue = snd_seq_alloc_queue(self->seq);
+  if (self->queue < 0)
+  {
+    a2j_error("snd_seq_alloc_queue() failed");
+    goto close_seq_client;
+  }
+
   snd_seq_start_queue(self->seq, self->queue, 0); 
 
   a2j_stream_attach(self->stream + A2J_PORT_CAPTURE);
   a2j_stream_attach(self->stream + A2J_PORT_PLAYBACK);
 
-  snd_seq_nonblock(self->seq, 1);
+  error = snd_seq_nonblock(self->seq, 1);
+  if (error < 0)
+  {
+    a2j_error("snd_seq_nonblock() failed");
+    goto close_seq_client;
+  }
 
-  snd_seq_connect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+  error = snd_seq_connect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+  if (error < 0)
+  {
+    a2j_error("snd_seq_connect_from() failed");
+    goto close_seq_client;
+  }
+
   snd_seq_drop_input(self->seq);
 
   a2j_add_ports(&self->stream[A2J_PORT_CAPTURE]);
@@ -208,71 +269,86 @@ a2j_new()
   self->jack_client = a2j_jack_client_create(self, A2J_JACK_CLIENT_NAME, g_a2j_jack_server_name);
   if (self->jack_client == NULL)
   {
-    free(self);
-    return NULL;
+    goto free_self;
   }
 
-  if (sem_init (&self->io_semaphore, 0, 0) < 0) {
-    a2j_error ("can't create IO semaphore");
-    free (self);
-    return NULL;
+  if (sem_init(&self->io_semaphore, 0, 0) < 0)
+  {
+    a2j_error("can't create IO semaphore");
+    goto close_jack_client;
   }
 
   if (jack_activate(self->jack_client))
   {
     a2j_error("can't activate jack client");
-
-    error = jack_client_close(self->jack_client);
-    if (error != 0)
-    {
-      a2j_error("Cannot close jack client");
-    }
-
-    free(self);
-    return NULL;
+    goto sem_destroy;
   }
 
   a2j_add_existing_ports(self);
 
   g_keep_alsa_walking = true;
 
-  if (pthread_create (&self->alsa_input_thread, NULL, a2j_alsa_input_thread, self) < 0) {
-    fprintf (stderr, "cannot start ALSA input thread\n");
-    free (self);
-    return NULL;
+  if (pthread_create(&self->alsa_input_thread, NULL, a2j_alsa_input_thread, self) < 0)
+  {
+    a2j_error("cannot start ALSA input thread");
+    goto sem_destroy;
   }
 
-  if (pthread_create (&self->alsa_output_thread, NULL, a2j_alsa_output_thread, self) < 0) {
-    fprintf (stderr, "cannot start ALSA output thread\n");
-    free (self);
-    return NULL;
+  if (pthread_create(&self->alsa_output_thread, NULL, a2j_alsa_output_thread, self) < 0)
+  {
+    a2j_error("cannot start ALSA output thread");
+    goto join_input_thread;
   }
 
   return self;
+
+join_input_thread:
+  g_keep_alsa_walking = false;  /* tell alsa threads to stop */
+  snd_seq_disconnect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+  pthread_join(self->alsa_input_thread, &thread_status);
+sem_destroy:
+  sem_destroy(&self->io_semaphore);
+close_jack_client:
+  error = jack_client_close(self->jack_client);
+  if (error != 0)
+  {
+    a2j_error("Cannot close jack client");
+  }
+close_seq_client:
+  snd_seq_close(self->seq);
+close_playback_stream:
+  a2j_stream_close(self, A2J_PORT_PLAYBACK);
+close_capture_stream:
+  a2j_stream_close(self, A2J_PORT_CAPTURE);
+free_ringbuffer_outbound:
+  jack_ringbuffer_free(self->outbound_events);
+free_ringbuffer_del:
+  jack_ringbuffer_free(self->port_del);
+free_ringbuffer_add:
+  jack_ringbuffer_free(self->port_add);
+free_self:
+  free(self);
+fail:
+  return NULL;
 }
 
-static
-void
-a2j_destroy(
-  struct a2j * self)
+static void a2j_destroy(struct a2j * self)
 {
   int error;
-  void* alsa_status;
+  void * thread_status;
 
   a2j_debug("midi: delete");
 
   g_keep_alsa_walking = false;  /* tell alsa threads to stop */
 
   /* do something that we need to do anyway and will wake the input thread, then join */
-
   snd_seq_disconnect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
-  pthread_join (self->alsa_input_thread, &alsa_status);
+  pthread_join(self->alsa_input_thread, &thread_status);
 
   /* wake output thread and join, then destroy the semaphore */
-
-  sem_post (&self->io_semaphore);
-  pthread_join (self->alsa_output_thread, &alsa_status);
-  sem_destroy (&self->io_semaphore);
+  sem_post(&self->io_semaphore);
+  pthread_join(self->alsa_output_thread, &thread_status);
+  sem_destroy(&self->io_semaphore);
 
   jack_ringbuffer_reset(self->port_add);
 
@@ -293,14 +369,14 @@ a2j_destroy(
   a2j_stream_close(self, A2J_PORT_PLAYBACK);
   a2j_stream_close(self, A2J_PORT_CAPTURE);
 
+  jack_ringbuffer_free(self->outbound_events);
   jack_ringbuffer_free(self->port_add);
   jack_ringbuffer_free(self->port_del);
 
   free(self);
 }
 
-bool
-a2j_start()
+bool a2j_start(void)
 {
   if (g_started)
   {
@@ -333,8 +409,7 @@ a2j_start()
   return true;
 }
 
-bool
-a2j_stop()
+bool a2j_stop(void)
 {
   if (!g_started)
   {
