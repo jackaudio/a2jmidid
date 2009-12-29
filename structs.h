@@ -113,6 +113,7 @@ struct a2j_delivery_event
   jack_midi_event_t jack_event;
   jack_nframes_t time; /* realtime, not offset time */
   struct a2j_port* port;
+  char midistring[4];
 };
 
 /* Beside enum use, these are indeces for (struct a2j).stream array */

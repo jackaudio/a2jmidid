@@ -251,15 +251,16 @@ a2j_process_outgoing (
   limit = vec[0].len / sizeof (struct a2j_delivery_event);
   nevents = jack_midi_get_event_count (port->jack_buf);
 
-  limit = (limit > nevents ? nevents : limit);
-
-  for (i = 0; i < limit; ++i) {
+  for (i = 0; (i < nevents) && (written < limit); ++i) {
 
     jack_midi_event_get (&dev->jack_event, port->jack_buf, i);
-    dev->time = dev->jack_event.time;
-    dev->port = port;
-    written++;
-    ++dev;
+    if( dev->jack_event.size <= 4 ) {
+      dev->time = dev->jack_event.time;
+      dev->port = port;
+      memcpy( dev->midistring, dev->jack_event.buffer, dev->jack_event.size );
+      written++;
+      ++dev;
+    }
   }
 
   /* anything left? use the second part of the vector, as much as possible */
@@ -270,16 +271,19 @@ a2j_process_outgoing (
     dev = (struct a2j_delivery_event*) vec[1].buf;
 
     limit += (vec[1].len / sizeof (struct a2j_delivery_event));
-    limit = (limit > nevents ? nevents : limit);
 
-    while (i < limit) {
+    while ((i < nevents) && (written < limit)) {
+
       jack_midi_event_get (&dev->jack_event, port->jack_buf, i);
-      dev->time = dev->jack_event.time;
-      dev->port = port;
-      written++;
-      ++dev;
+      if( dev->jack_event.size <= 4 ) {
+	dev->time = dev->jack_event.time;
+	dev->port = port;
+	memcpy( dev->midistring, dev->jack_event.buffer, dev->jack_event.size );
+	written++;
+	++dev;
+      } 
       ++i;
-    } 
+    }
   }
 
   a2j_debug( "done pushing events: %d ... gap: %d ", (int)written, (int)gap );
@@ -364,7 +368,7 @@ a2j_alsa_output_thread (void *arg)
 
       snd_seq_ev_clear(&alsa_event);
       snd_midi_event_reset_encode(str->codec);
-      if (!snd_midi_event_encode(str->codec, ev->jack_event.buffer, ev->jack_event.size, &alsa_event)) {
+      if (!snd_midi_event_encode(str->codec, ev->midistring, ev->jack_event.size, &alsa_event)) {
         continue; // invalid event
       }
       
