@@ -63,6 +63,7 @@ a2j_process_incoming (
   struct a2j_alsa_midi_event ev;
   jack_nframes_t now;
   jack_nframes_t one_period;
+  char *ev_buf;
 
   /* grab data queued by the ALSA input thread and write it into the JACK
      port buffer. it will delivered during the JACK period that this
@@ -88,7 +89,11 @@ a2j_process_incoming (
       break;
     }
     
-    jack_ringbuffer_read_advance (port->inbound_events, sizeof (ev));
+    //jack_ringbuffer_read_advance (port->inbound_events, sizeof (ev));
+    ev_buf = (char *) alloca( sizeof(ev) + ev.size );
+
+    if (jack_ringbuffer_peek (port->inbound_events, ev_buf, sizeof(ev) + ev.size ) != sizeof(ev) + ev.size)
+      break;
 
     offset = self->cycle_start - ev.time;
     if (offset > one_period) {
@@ -107,12 +112,12 @@ a2j_process_incoming (
 
     if (buf) {
       /* grab the event */
-      jack_ringbuffer_read (port->inbound_events, (char*)buf, ev.size);
+      memcpy( buf, ev_buf + sizeof(ev), ev.size );
     } else {
       /* throw it away (no space) */
-      jack_ringbuffer_read_advance (port->inbound_events, ev.size);
       a2j_error ("threw away MIDI event - not reserved at time %d", ev.time);
     }
+    jack_ringbuffer_read_advance (port->inbound_events, sizeof(ev) + ev.size);
     
     a2j_debug("input on %s: sucked %d bytes from inbound at %d", jack_port_name (port->jack_port), ev.size, ev.time);
   }
