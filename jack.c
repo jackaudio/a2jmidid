@@ -265,22 +265,27 @@ a2j_process_outgoing (
 
   /* anything left? use the second part of the vector, as much as possible */
 
-  if (i < nevents) {
-    if( vec[0].len )
-        gap = vec[0].len - written*sizeof (struct a2j_delivery_event);
+  if (i < nevents)
+  {
+    if (vec[0].len)
+    {
+        gap = vec[0].len - written * sizeof(struct a2j_delivery_event);
+    }
+
     dev = (struct a2j_delivery_event*) vec[1].buf;
 
     limit += (vec[1].len / sizeof (struct a2j_delivery_event));
 
-    while ((i < nevents) && (written < limit)) {
-
-      jack_midi_event_get (&dev->jack_event, port->jack_buf, i);
-      if( dev->jack_event.size <= 4 ) {
-	dev->time = dev->jack_event.time;
-	dev->port = port;
-	memcpy( dev->midistring, dev->jack_event.buffer, dev->jack_event.size );
-	written++;
-	++dev;
+    while ((i < nevents) && (written < limit))
+    {
+      jack_midi_event_get(&dev->jack_event, port->jack_buf, i);
+      if (dev->jack_event.size <= 4)
+      {
+        dev->time = dev->jack_event.time;
+        dev->port = port;
+        memcpy(dev->midistring, dev->jack_event.buffer, dev->jack_event.size);
+        written++;
+        ++dev;
       } 
       ++i;
     }
