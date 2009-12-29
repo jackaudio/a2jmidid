@@ -79,7 +79,7 @@ a2j_process_incoming (
   now = jack_frame_time (self->jack_client);
   one_period = jack_get_buffer_size (self->jack_client);
 
-  while (jack_ringbuffer_peek (port->inbound_events, (char*)&ev, sizeof(ev))) {
+  while (jack_ringbuffer_peek (port->inbound_events, (char*)&ev, sizeof(ev) ) == sizeof(ev) ) {
 
     jack_midi_data_t* buf;
     jack_nframes_t offset;
