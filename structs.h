@@ -102,6 +102,8 @@ struct a2j_alsa_midi_event
   int size;
 };
 
+#define MAX_JACKMIDI_EV_SIZE 16
+
 struct a2j_delivery_event 
 {
   struct list_head siblings;
@@ -113,7 +115,7 @@ struct a2j_delivery_event
   jack_midi_event_t jack_event;
   jack_nframes_t time; /* realtime, not offset time */
   struct a2j_port* port;
-  char midistring[4];
+  char midistring[MAX_JACKMIDI_EV_SIZE];
 };
 
 /* Beside enum use, these are indeces for (struct a2j).stream array */

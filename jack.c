@@ -253,7 +253,7 @@ a2j_process_outgoing (
   for (i = 0; (i < nevents) && (written < limit); ++i) {
 
     jack_midi_event_get (&dev->jack_event, port->jack_buf, i);
-    if( dev->jack_event.size <= 4 ) {
+    if( dev->jack_event.size <= MAX_JACKMIDI_EV_SIZE ) {
       dev->time = dev->jack_event.time;
       dev->port = port;
       memcpy( dev->midistring, dev->jack_event.buffer, dev->jack_event.size );
@@ -274,7 +274,7 @@ a2j_process_outgoing (
     while ((i < nevents) && (written < limit)) {
 
       jack_midi_event_get (&dev->jack_event, port->jack_buf, i);
-      if( dev->jack_event.size <= 4 ) {
+      if( dev->jack_event.size <= MAX_JACKMIDI_EV_SIZE ) {
 	dev->time = dev->jack_event.time;
 	dev->port = port;
 	memcpy( dev->midistring, dev->jack_event.buffer, dev->jack_event.size );
