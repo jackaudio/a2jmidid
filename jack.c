@@ -33,6 +33,7 @@
 #include "port_hash.h"
 #include "port.h"
 #include "a2jmidid.h"
+#include "port_thread.h"
 
 static bool g_freewheeling = false;
 
@@ -253,7 +254,8 @@ a2j_process_outgoing (
   for (i = 0; (i < nevents) && (written < limit); ++i) {
 
     jack_midi_event_get (&dev->jack_event, port->jack_buf, i);
-    if( dev->jack_event.size <= MAX_JACKMIDI_EV_SIZE ) {
+    if (dev->jack_event.size <= MAX_JACKMIDI_EV_SIZE)
+    {
       dev->time = dev->jack_event.time;
       dev->port = port;
       memcpy( dev->midistring, dev->jack_event.buffer, dev->jack_event.size );
@@ -264,22 +266,27 @@ a2j_process_outgoing (
 
   /* anything left? use the second part of the vector, as much as possible */
 
-  if (i < nevents) {
-    if( vec[0].len )
-        gap = vec[0].len - written*sizeof (struct a2j_delivery_event);
+  if (i < nevents)
+  {
+    if (vec[0].len)
+    {
+        gap = vec[0].len - written * sizeof(struct a2j_delivery_event);
+    }
+
     dev = (struct a2j_delivery_event*) vec[1].buf;
 
     limit += (vec[1].len / sizeof (struct a2j_delivery_event));
 
-    while ((i < nevents) && (written < limit)) {
-
-      jack_midi_event_get (&dev->jack_event, port->jack_buf, i);
-      if( dev->jack_event.size <= MAX_JACKMIDI_EV_SIZE ) {
-	dev->time = dev->jack_event.time;
-	dev->port = port;
-	memcpy( dev->midistring, dev->jack_event.buffer, dev->jack_event.size );
-	written++;
-	++dev;
+    while ((i < nevents) && (written < limit))
+    {
+      jack_midi_event_get(&dev->jack_event, port->jack_buf, i);
+      if (dev->jack_event.size <= MAX_JACKMIDI_EV_SIZE)
+      {
+        dev->time = dev->jack_event.time;
+        dev->port = port;
+        memcpy(dev->midistring, dev->jack_event.buffer, dev->jack_event.size);
+        written++;
+        ++dev;
       } 
       ++i;
     }
@@ -366,7 +373,8 @@ void * a2j_alsa_output_thread(void * arg)
 
       snd_seq_ev_clear(&alsa_event);
       snd_midi_event_reset_encode(str->codec);
-      if (!snd_midi_event_encode(str->codec, ev->midistring, ev->jack_event.size, &alsa_event)) {
+      if (!snd_midi_event_encode(str->codec, (const unsigned char *)ev->midistring, ev->jack_event.size, &alsa_event))
+      {
         continue; // invalid event
       }
       
@@ -426,24 +434,56 @@ void * a2j_alsa_output_thread(void * arg)
 
 void * a2j_alsa_input_thread(void * arg)
 {
-  struct a2j* self = (struct a2j* ) arg;
+  struct a2j * self = arg;
   int npfd;
-  struct pollfd *pfd;
+  struct pollfd * pfd;
+  snd_seq_addr_t addr;
+  snd_seq_client_info_t * client_info;
+  snd_seq_port_info_t * port_info;
+  bool initial;
+  snd_seq_event_t * event;
+  int ret;
 
   npfd = snd_seq_poll_descriptors_count(self->seq, POLLIN);
   pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
   snd_seq_poll_descriptors(self->seq, pfd, npfd, POLLIN);
 
-  while (g_keep_alsa_walking) {
-    int ret;
-    if ((ret = poll(pfd, npfd, 1000)) > 0) {
+  initial = true;
+  while (g_keep_alsa_walking)
+  {
+    if ((ret = poll(pfd, npfd, 1000)) > 0)
+    {
 
-      snd_seq_event_t *event;
+      while (snd_seq_event_input (self->seq, &event) > 0)
+      {
+        if (initial)
+        {
+          snd_seq_client_info_alloca(&client_info);
+          snd_seq_port_info_alloca(&port_info);
+          snd_seq_client_info_set_client(client_info, -1);
+          while (snd_seq_query_next_client(self->seq, client_info) >= 0)
+          {
+            addr.client = snd_seq_client_info_get_client(client_info);
+            if (addr.client == SND_SEQ_CLIENT_SYSTEM || addr.client == self->client_id)
+              continue;
+            snd_seq_port_info_set_client(port_info, addr.client);
+            snd_seq_port_info_set_port(port_info, -1);
+            while (snd_seq_query_next_port(self->seq, port_info) >= 0)
+            {
+              addr.port = snd_seq_port_info_get_port(port_info);
+              a2j_update_port(self, addr, port_info);
+            }
+          }
 
-      while (snd_seq_event_input (self->seq, &event) > 0) {
-        if (event->source.client == SND_SEQ_CLIENT_SYSTEM) {
+          initial = false;
+        }
+
+        if (event->source.client == SND_SEQ_CLIENT_SYSTEM)
+        {
           a2j_port_event(a2j_ptr, event);
-        } else {
+        }
+        else
+        {
           a2j_input_event(a2j_ptr, event);
         }
 

@@ -61,37 +61,6 @@ struct a2j * g_a2j = NULL;
 bool g_a2j_export_hw_ports = false;
 char * g_a2j_jack_server_name = "default";
 
-/////////////////////////////
-
-static
-void
-a2j_add_existing_ports(
-  struct a2j * self)
-{
-  snd_seq_addr_t addr;
-  snd_seq_client_info_t *client_info;
-  snd_seq_port_info_t *port_info;
-
-  snd_seq_client_info_alloca(&client_info);
-  snd_seq_port_info_alloca(&port_info);
-  snd_seq_client_info_set_client(client_info, -1);
-  while (snd_seq_query_next_client(self->seq, client_info) >= 0)
-  {
-    addr.client = snd_seq_client_info_get_client(client_info);
-    if (addr.client == SND_SEQ_CLIENT_SYSTEM || addr.client == self->client_id)
-      continue;
-    snd_seq_port_info_set_client(port_info, addr.client);
-    snd_seq_port_info_set_port(port_info, -1);
-    while (snd_seq_query_next_port(self->seq, port_info) >= 0)
-    {
-      addr.port = snd_seq_port_info_get_port(port_info);
-      a2j_update_port(self, addr, port_info);
-    }
-  }
-}
-
-////////////////////////////////
-
 static
 void
 a2j_sigint_handler(
@@ -254,13 +223,6 @@ struct a2j * a2j_new(void)
     goto close_seq_client;
   }
 
-  error = snd_seq_connect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
-  if (error < 0)
-  {
-    a2j_error("snd_seq_connect_from() failed");
-    goto close_seq_client;
-  }
-
   snd_seq_drop_input(self->seq);
 
   a2j_add_ports(&self->stream[A2J_PORT_CAPTURE]);
@@ -284,8 +246,6 @@ struct a2j * a2j_new(void)
     goto sem_destroy;
   }
 
-  a2j_add_existing_ports(self);
-
   g_keep_alsa_walking = true;
 
   if (pthread_create(&self->alsa_input_thread, NULL, a2j_alsa_input_thread, self) < 0)
@@ -294,17 +254,26 @@ struct a2j * a2j_new(void)
     goto sem_destroy;
   }
 
+  /* wake the poll loop in the alsa input thread so initial ports are fetched */
+  error = snd_seq_connect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+  if (error < 0)
+  {
+    a2j_error("snd_seq_connect_from() failed");
+    goto join_input_thread;
+  }
+
   if (pthread_create(&self->alsa_output_thread, NULL, a2j_alsa_output_thread, self) < 0)
   {
     a2j_error("cannot start ALSA output thread");
-    goto join_input_thread;
+    goto disconnect;
   }
 
   return self;
 
-join_input_thread:
+disconnect:
   g_keep_alsa_walking = false;  /* tell alsa threads to stop */
   snd_seq_disconnect_from(self->seq, self->port_id, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+join_input_thread:
   pthread_join(self->alsa_input_thread, &thread_status);
 sem_destroy:
   sem_destroy(&self->io_semaphore);
