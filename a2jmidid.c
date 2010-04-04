@@ -57,6 +57,7 @@ bool g_keep_alsa_walking = false;
 bool g_stop_request = false;
 static bool g_started = false;
 struct a2j * g_a2j = NULL;
+size_t g_max_jack_port_name_size;
 
 bool g_a2j_export_hw_ports = false;
 char * g_a2j_jack_server_name = "default";
@@ -434,6 +435,8 @@ main(
   stat(argv[0], &st);
   ctime_r(&st.st_mtime, timestamp_str);
   timestamp_str[24] = 0;
+
+  g_max_jack_port_name_size = jack_port_name_size();
 
   if (!a2j_paths_init())
   {

@@ -43,7 +43,6 @@ struct a2j_port
   struct list_head siblings;    /* list - main loop */
   struct a2j * a2j_ptr;
   bool is_dead;
-  char name[64];
   snd_seq_addr_t remote;
   jack_port_t * jack_port;
 
@@ -51,6 +50,7 @@ struct a2j_port
   int64_t last_out_time;
 
   void * jack_buf;
+  char name[0];
 };
 
 struct a2j_stream
@@ -123,5 +123,7 @@ struct a2j_delivery_event
 #define A2J_PORT_PLAYBACK  1 // JACK playback port -> ALSA capture port
 
 extern struct a2j * g_a2j;
+
+extern size_t g_max_jack_port_name_size;
 
 #endif /* #ifndef STRUCTS_H__FD2CC895_411F_4ADE_9200_50FE395EDB72__INCLUDED */

@@ -107,12 +107,13 @@ a2j_port_fill_name(
   bool make_unique)
 {
   char *c;
+  int ret;
 
   if (make_unique)
   {
-    snprintf(
+    ret = snprintf(
       port_ptr->name,
-      sizeof(port_ptr->name),
+      g_max_jack_port_name_size,
       "%s [%d] (%s): %s",
       snd_seq_client_info_get_name(client_info_ptr),
       snd_seq_client_info_get_client(client_info_ptr),
@@ -121,9 +122,9 @@ a2j_port_fill_name(
   }
   else
   {
-    snprintf(
+    ret = snprintf(
       port_ptr->name,
-      sizeof(port_ptr->name),
+      g_max_jack_port_name_size,
       "%s (%s): %s",
       snd_seq_client_info_get_name(client_info_ptr),
       type == A2J_PORT_CAPTURE ? "capture": "playback",
@@ -134,6 +135,13 @@ a2j_port_fill_name(
   for (c = port_ptr->name; *c; ++c)
     if (!JACK_IS_VALID_PORT_NAME_CHAR(*c))
       *c = ' ';
+
+  if (ret < 0 || ret >= g_max_jack_port_name_size)
+  {
+     /* force terminating nul char because the man page does not specify whether the resulting buffer is nul terminated in this case */
+    port_ptr->name[g_max_jack_port_name_size] = 0;
+    a2j_warning("port name \"%s\" was truncated because of the max size support by JACK (%zu)", port_ptr->name, g_max_jack_port_name_size);
+  }
 }
 
 struct a2j_port *
@@ -171,7 +179,7 @@ a2j_port_create(
   a2j_debug("client name: '%s'", snd_seq_client_info_get_name(client_info_ptr));
   a2j_debug("port name: '%s'", snd_seq_port_info_get_name(info));
 
-  port = calloc(1, sizeof(struct a2j_port));
+  port = calloc(1, sizeof(struct a2j_port) + g_max_jack_port_name_size);
   if (!port)
   {
     goto fail_free_client_info;
