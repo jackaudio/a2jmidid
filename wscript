@@ -60,6 +60,8 @@ def configure(conf):
     conf.check_pkg('jack', vnum="0.109.0", mandatory=True)
     conf.check_pkg('dbus-1', mandatory=True, pkgvars=['session_bus_services_dir'])
 
+    conf.env['LIB_DL'] = ['dl']
+
     #conf.check_header('expat.h', mandatory=True)
     #conf.env['LIB_EXPAT'] = ['expat']
     conf.check_header('getopt.h', mandatory=True)
@@ -129,7 +131,7 @@ def build(bld):
         ]
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
-    prog.uselib = 'ALSA JACK DBUS-1'
+    prog.uselib = 'ALSA JACK DBUS-1 DL'
 
     prog = bld.create_obj('cc', 'program')
     prog.source = 'a2jmidi_bridge.c'
