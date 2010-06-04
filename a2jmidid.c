@@ -18,6 +18,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
+#include "config.h"
+
 #include <signal.h>
 #include <semaphore.h>
 #include <stdbool.h>
@@ -30,18 +32,21 @@
 #include <jack/midiport.h>
 #include <jack/ringbuffer.h>
 
-#include <dbus/dbus.h>
+#if HAVE_DBUS_1
+# include <dbus/dbus.h>
+#endif
 
 #include <getopt.h>
 
-#include "config.h"
 #include "list.h"
 #include "structs.h"
 #include "port.h"
 #include "port_thread.h"
 #include "port_hash.h"
 #include "log.h"
-#include "dbus.h"
+#if HAVE_DBUS_1
+# include "dbus.h"
+#endif
 #include "a2jmidid.h"
 #include "paths.h"
 #include "conf.h"
@@ -369,10 +374,12 @@ bool a2j_start(void)
 
   a2j_info("Bridge started");
 
+#if HAVE_DBUS_1
   if (a2j_dbus_is_available())
   {
     a2j_dbus_signal_emit_bridge_started();
   }
+#endif
 
   g_started = true;
 
@@ -396,10 +403,12 @@ bool a2j_stop(void)
 
   g_started = false;
 
+#if HAVE_DBUS_1
   if (a2j_dbus_is_available())
   {
     a2j_dbus_signal_emit_bridge_stopped();
   }
+#endif
 
   return true;
 }
@@ -443,7 +452,11 @@ main(
     goto fail;
   }
 
+#if HAVE_DBUS_1
   dbus = argc == 2 && strcmp(argv[1], "dbus") == 0;
+#else
+  dbus = false;
+#endif
 
   if (!a2j_log_init(dbus))
   {
@@ -507,11 +520,13 @@ main(
 
   if (dbus)
   {
+#if HAVE_DBUS_1
     if (!a2j_dbus_init())
     {
       a2j_error("a2j_dbus_init() failed.");
       goto fail_uninit_log;
     }
+#endif
   }
   else
   {
@@ -527,11 +542,13 @@ main(
   {
     if (dbus)
     {
+#if HAVE_DBUS_1
       if (!a2j_dbus_run(MAIN_LOOP_SLEEP_INTERVAL))
       {
         a2j_warning("Disconnect message was received from D-Bus.");
         break;
       }
+#endif
     }
     else
     {
@@ -562,6 +579,7 @@ main(
     a2j_stop();
   }
 
+#if HAVE_DBUS_1
   if (dbus)
   {
     a2j_dbus_uninit();
@@ -569,6 +587,7 @@ main(
     a2j_info("Deactivated.");
     a2j_info("----------------------------");
   }
+#endif
 
 fail_uninit_log:
   a2j_log_uninit();

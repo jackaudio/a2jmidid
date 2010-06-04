@@ -52,13 +52,18 @@ def display_msg(msg, status = None, color = None):
 def set_options(opt):
     opt.tool_options('compiler_cc')
     opt.add_option('--enable-pkg-config-dbus-service-dir', action='store_true', default=False, help='force D-Bus service install dir to be one returned by pkg-config')
+    opt.add_option('--disable-dbus', action='store_true', default=False, help="Don't enable D-Bus support even if required dependencies are present")
 
 def configure(conf):
     conf.check_tool('compiler_cc')
 
     conf.check_pkg('alsa', mandatory=True)
     conf.check_pkg('jack', vnum="0.109.0", mandatory=True)
-    conf.check_pkg('dbus-1', mandatory=True, pkgvars=['session_bus_services_dir'])
+    if not Params.g_options.disable_dbus:
+        conf.check_pkg('dbus-1', mandatory=False, pkgvars=['session_bus_services_dir'])
+        conf.env['DBUS_ENABLED'] = 'LIB_DBUS-1' in conf.env
+    else:
+        conf.env['DBUS_ENABLED'] = False
 
     conf.env['LIB_DL'] = ['dl']
 
@@ -66,12 +71,13 @@ def configure(conf):
     #conf.env['LIB_EXPAT'] = ['expat']
     conf.check_header('getopt.h', mandatory=True)
 
-    if Params.g_options.enable_pkg_config_dbus_service_dir:
-        conf.env['DBUS_SERVICES_DIR'] = conf.env['DBUS-1_SESSION_BUS_SERVICES_DIR'][0]
-    else:
-        conf.env['DBUS_SERVICES_DIR'] = os.path.normpath(conf.env['PREFIX'] + '/share/dbus-1/services')
+    if conf.env['DBUS_ENABLED']:
+        if Params.g_options.enable_pkg_config_dbus_service_dir:
+            conf.env['DBUS_SERVICES_DIR'] = conf.env['DBUS-1_SESSION_BUS_SERVICES_DIR'][0]
+        else:
+            conf.env['DBUS_SERVICES_DIR'] = os.path.normpath(conf.env['PREFIX'] + '/share/dbus-1/services')
 
-    conf.check_tool('misc')             # dbus service file subst tool
+        conf.check_tool('misc')             # dbus service file subst tool
 
     conf.define('A2J_VERSION', VERSION)
     conf.write_config_header('config.h')
@@ -94,19 +100,25 @@ def configure(conf):
     print
 
     display_msg("Install prefix", conf.env['PREFIX'], 'CYAN')
-    display_msg('D-Bus service install directory', conf.env['DBUS_SERVICES_DIR'], 'CYAN')
-    if conf.env['DBUS_SERVICES_DIR'] != conf.env['DBUS-1_SESSION_BUS_SERVICES_DIR'][0]:
-        print
-        print Params.g_colors['RED'] + "WARNING: D-Bus session services directory as reported by pkg-config is"
-        print Params.g_colors['RED'] + "WARNING:",
-        print Params.g_colors['CYAN'] + conf.env['DBUS-1_SESSION_BUS_SERVICES_DIR'][0]
-        print Params.g_colors['RED'] + 'WARNING: but service file will be installed in'
-        print Params.g_colors['RED'] + "WARNING:",
-        print Params.g_colors['CYAN'] + conf.env['DBUS_SERVICES_DIR']
-        print Params.g_colors['RED'] + 'WARNING: You may need to adjust your D-Bus configuration after installing'
-        print 'WARNING: You can override dbus service install directory'
-        print 'WARNING: with --enable-pkg-config-dbus-service-dir option to this script'
-        print Params.g_colors['NORMAL'],
+    if conf.env['DBUS_ENABLED']:
+        have_dbus_status = "yes"
+    else:
+        have_dbus_status = "no"
+    display_msg("D-Bus support", have_dbus_status)
+    if conf.env['DBUS_ENABLED']:
+        display_msg('D-Bus service install directory', conf.env['DBUS_SERVICES_DIR'], 'CYAN')
+        if conf.env['DBUS_SERVICES_DIR'] != conf.env['DBUS-1_SESSION_BUS_SERVICES_DIR'][0]:
+            print
+            print Params.g_colors['RED'] + "WARNING: D-Bus session services directory as reported by pkg-config is"
+            print Params.g_colors['RED'] + "WARNING:",
+            print Params.g_colors['CYAN'] + conf.env['DBUS-1_SESSION_BUS_SERVICES_DIR'][0]
+            print Params.g_colors['RED'] + 'WARNING: but service file will be installed in'
+            print Params.g_colors['RED'] + "WARNING:",
+            print Params.g_colors['CYAN'] + conf.env['DBUS_SERVICES_DIR']
+            print Params.g_colors['RED'] + 'WARNING: You may need to adjust your D-Bus configuration after installing'
+            print 'WARNING: You can override dbus service install directory'
+            print 'WARNING: with --enable-pkg-config-dbus-service-dir option to this script'
+            print Params.g_colors['NORMAL'],
     print
 
 def build(bld):
@@ -120,19 +132,23 @@ def build(bld):
         'port.c',
         'port_thread.c',
         'port_hash.c',
-        'dbus.c',
-        'dbus_iface_introspectable.c',
-        'dbus_iface_control.c',
         'paths.c',
         #'conf.c',
         'jack.c',
-        'sigsegv.c',
         'list.c',
         ]
+
+    if bld.env()['DBUS_ENABLED']:
+        prog.source.append('dbus.c')
+        prog.source.append('dbus_iface_introspectable.c')
+        prog.source.append('dbus_iface_control.c')
+        prog.source.append('sigsegv.c')
+
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
-    prog.uselib = 'ALSA JACK DBUS-1 DL'
-
+    prog.uselib = 'ALSA JACK DL'
+    if bld.env()['DBUS_ENABLED']:
+        prog.uselib += " DBUS-1"
     prog = bld.create_obj('cc', 'program')
     prog.source = 'a2jmidi_bridge.c'
     prog.target = 'a2jmidi_bridge'
@@ -143,16 +159,17 @@ def build(bld):
     prog.target = 'j2amidi_bridge'
     prog.uselib = 'ALSA JACK'
 
-    # process org.gna.home.a2jmidid.service.in -> org.gna.home.a2jmidid.service
-    obj = bld.create_obj('subst')
-    obj.source = 'org.gna.home.a2jmidid.service.in'
-    obj.target = 'org.gna.home.a2jmidid.service'
-    obj.dict = {'BINDIR': bld.env()['PREFIX'] + '/bin'}
-    obj.inst_var = bld.env()['DBUS_SERVICES_DIR']
-    obj.inst_dir = '/'
+    if bld.env()['DBUS_ENABLED']:
+        # process org.gna.home.a2jmidid.service.in -> org.gna.home.a2jmidid.service
+        obj = bld.create_obj('subst')
+        obj.source = 'org.gna.home.a2jmidid.service.in'
+        obj.target = 'org.gna.home.a2jmidid.service'
+        obj.dict = {'BINDIR': bld.env()['PREFIX'] + '/bin'}
+        obj.inst_var = bld.env()['DBUS_SERVICES_DIR']
+        obj.inst_dir = '/'
 
-    install_files('PREFIX', 'bin', 'a2j_control', chmod=0755)
-    install_files('PREFIX', 'bin', 'a2j', chmod=0755)
+        install_files('PREFIX', 'bin', 'a2j_control', chmod=0755)
+        install_files('PREFIX', 'bin', 'a2j', chmod=0755)
 
 def dist_hook():
     os.remove('gitversion_regenerate.sh')
