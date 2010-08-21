@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# This script access a2jmidid over dbus
+# This script accesses a2jmidid over dbus
 # and behaves as a2jmidid in non-dbus mode
 #
 
