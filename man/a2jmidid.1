@@ -1,0 +1,22 @@
+.TH a2jmidid 1 "July 2009" Linux "User Manuals"  
+
+.SH NAME 
+a2jmidid \- JACK MIDI daemon for ALSA MIDI
+.SH SYNOPSIS
+.B a2jmidid [-j jack-server] [e | --export-hw]
+.SH DESCRIPTION
+a2jmidid is a daemon that implements automatic bridging. For every ALSA
+sequencer port you get one jack midi port. If ALSA sequencer port is
+both input and output one, you get two JACK MIDI ports, one input and
+output.
+.SH OPTIONS
+.IP "-e | --export-hw"
+forces a2jmidid to bridge hardware ports as well as software ports
+.IP -j
+specifies which jack-server to use
+.SH AUTHOR
+Eric Hedekar <after the beep at g mail dot nospam com>
+.SH "SEE ALSO"
+.BR a2j_control (1),
+.BR a2jmidi_bridge (1),
+.BR j2amidi_bridge (1)

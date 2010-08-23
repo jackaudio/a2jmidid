@@ -79,6 +79,8 @@ def configure(conf):
 
         conf.check_tool('misc')             # dbus service file subst tool
 
+    conf.env['MANDIR'] = os.path.normpath(conf.env['PREFIX'] + '/share/man')
+
     conf.define('A2J_VERSION', VERSION)
     conf.write_config_header('config.h')
 
@@ -170,6 +172,22 @@ def build(bld):
 
         install_files('PREFIX', 'bin', 'a2j_control', chmod=0755)
         install_files('PREFIX', 'bin', 'a2j', chmod=0755)
+
+    # install man pages
+    man_pages = [
+        "a2jmidi_bridge.1",
+        "a2jmidid.1",
+        "j2amidi_bridge.1",
+        ]
+
+    if bld.env()['DBUS_ENABLED']:
+        man_pages.append("a2j.1")
+        man_pages.append("a2j_control.1")
+
+    for i in range(len(man_pages)):
+        man_pages[i] = "man/" + man_pages[i]
+
+    install_files('MANDIR', 'man1', man_pages)
 
 def dist_hook():
     os.remove('gitversion_regenerate.sh')

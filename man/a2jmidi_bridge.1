@@ -1,0 +1,18 @@
+.TH a2jmidi_bridge 1 "July 2009" Linux "User Manuals"
+
+.SH NAME
+a2jmidi_bridge \- static bridge with one ALSA playback port and one JACK MIDI input port
+.SH SYNOPSIS
+.B a2jmidi_bridge [NAME]
+.SH DESCRIPTION
+A single, static, one-way bridge from legacy ALSA MIDI to JACK MIDI.  Mostly useful for those needing a steady bridge rather than an active briding daemon such as a2jmidid.  Multiple instances of this can be run simultaneously.  
+.SH OPTIONS
+.IP NAME
+names the given bridge with the name provided
+.SH AUTHOR
+Eric Hedekar <after the beep at g mail dot nospam com>
+.SH "SEE ALSO"
+.BR a2jmidid (1),
+.BR a2j_control (1),
+.BR j2amidi_bridge (1)
+
