@@ -2,7 +2,7 @@
 /*
  * ALSA SEQ < - > JACK MIDI bridge
  *
- * Copyright (c) 2008,2009 Nedko Arnaudov <nedko@arnaudov.name>
+ * Copyright (c) 2008,2009,2010 Nedko Arnaudov <nedko@arnaudov.name>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,31 +25,68 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "log.h"
 #include "paths.h"
 
-FILE * g_logfile = NULL;
+static ino_t g_log_file_ino;
+static FILE * g_logfile = NULL;
 
-bool
-a2j_log_init(
-  bool use_logfile)
+static bool a2j_log_open(void)
+{
+    struct stat st;
+    int ret;
+    int retry;
+
+    if (g_logfile != NULL)
+    {
+        ret = stat(g_a2j_log_path, &st);
+        if (ret != 0 || g_log_file_ino != st.st_ino)
+        {
+            fclose(g_logfile);
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    for (retry = 0; retry < 10; retry++)
+    {
+        g_logfile = fopen(g_a2j_log_path, "a");
+        if (g_logfile == NULL)
+        {
+            fprintf(stderr, "Cannot open jackdbus log file \"%s\": %d (%s)\n", g_a2j_log_path, errno, strerror(errno));
+            return false;
+        }
+
+        ret = stat(g_a2j_log_path, &st);
+        if (ret == 0)
+        {
+            g_log_file_ino = st.st_ino;
+            return true;
+        }
+
+        fclose(g_logfile);
+        g_logfile = NULL;
+    }
+
+    fprintf(stderr, "Cannot stat just opened a2jmidid log file \"%s\": %d (%s). %d retries\n", g_a2j_log_path, errno, strerror(errno), retry);
+    return false;
+}
+
+bool a2j_log_init(bool use_logfile)
 {
   if (use_logfile)
   {
-    g_logfile = fopen(g_a2j_log_path, "a");
-    if (g_logfile == NULL)
-    {
-      a2j_error("Cannot open a2jmidid log file \"%s\": %d (%s)", g_a2j_log_path, errno, strerror(errno));
-      return false;
-    }
+    return a2j_log_open();
   }
 
   return true;
 }
 
-void
-a2j_log_uninit()
+void a2j_log_uninit(void)
 {
 	if (g_logfile != NULL)
 	{
@@ -68,7 +105,7 @@ a2j_log(
 	time_t timestamp;
 	char timestamp_str[26];
 
-	if (g_logfile != NULL)
+	if (g_logfile != NULL && a2j_log_open())
 	{
 		stream = g_logfile;
 	}
