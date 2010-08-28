@@ -57,7 +57,7 @@ static bool a2j_log_open(void)
         g_logfile = fopen(g_a2j_log_path, "a");
         if (g_logfile == NULL)
         {
-            fprintf(stderr, "Cannot open jackdbus log file \"%s\": %d (%s)\n", g_a2j_log_path, errno, strerror(errno));
+            fprintf(stderr, "Cannot open a2jmidid log file \"%s\": %d (%s)\n", g_a2j_log_path, errno, strerror(errno));
             return false;
         }
 
