@@ -1,4 +1,13 @@
-= Version 6 "Indzhe Voyvoda" on 2009-12-29
+= Version 7 "Paisius of Hilendar" on 2011-01-16 =
+ * MIDI processing improvements
+ * Use the JACK limit for max port name size (sr #2526)
+ * Adopt to shared library policy changes in some distros (sr #2547)
+ * dbus support can now be disabled at configure stage
+ * fix build on not so common platforms (LP: #556351)
+ * man pages (from Debian)
+ * reopen log file when it is deleted or replaced
+
+= Version 6 "Indzhe Voyvoda" on 2009-12-29 =
  * MIDI processing improvements
  * Handle large number of ports
  * a2j script (non-dbus-like behaviour for dbus environment)
@@ -6,7 +15,7 @@
  * Fix a use of invalid memory
  * Fix port miss that can occur if port appears during bridge startup
 
-= Version 5 "Athos" on 2009-06-13
+= Version 5 "Athos" on 2009-06-13 =
  * Fix thight loop on D-Bus disconnect
  * D-Bus signals for bridge start and stop
  * Fixed alsamidi "disappearing output" bug. (backport from jack1)

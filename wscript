@@ -9,7 +9,7 @@ import Task
 import re
 
 APPNAME='a2jmidid'
-VERSION='6'
+VERSION='7'
 
 # these variables are mandatory ('/' are converted automatically)
 srcdir = '.'
