@@ -230,6 +230,7 @@ a2j_port_create(
   port->inbound_events = jack_ringbuffer_create(MAX_EVENT_SIZE*16);
 
   a2j_info("port created: %s", port->name);
+  snd_seq_client_info_free(client_info_ptr);
   return port;
 
 fail_free_port:
