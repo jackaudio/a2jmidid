@@ -3,7 +3,7 @@
  * ALSA SEQ < - > JACK MIDI bridge
  *
  * Copyright (c) 2006,2007 Dmitry S. Baikov <c0ff@konstruktiv.org>
- * Copyright (c) 2007,2008,2009 Nedko Arnaudov <nedko@arnaudov.name>
+ * Copyright (c) 2007,2008,2009,2011 Nedko Arnaudov <nedko@arnaudov.name>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@
 #include "port_hash.h"
 #include "log.h"
 #include "port.h"
+
+extern bool g_disable_port_uniqueness;
 
 /* This should be part of JACK API */
 #define JACK_IS_VALID_PORT_NAME_CHAR(c)         \
@@ -190,7 +192,7 @@ a2j_port_create(
   port->jack_port = JACK_INVALID_PORT;
   port->remote = addr;
 
-  a2j_port_fill_name(port, type, client_info_ptr, info, true);
+  a2j_port_fill_name(port, type, client_info_ptr, info, !g_disable_port_uniqueness);
 
   /* Add port to list early, before registering to JACK, so map functionality is guaranteed to work during port registration */
   list_add_tail(&port->siblings, &stream_ptr->list);

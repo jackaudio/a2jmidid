@@ -2,7 +2,7 @@
  * ALSA SEQ < - > JACK MIDI bridge
  *
  * Copyright (c) 2006,2007 Dmitry S. Baikov <c0ff@konstruktiv.org>
- * Copyright (c) 2007,2008,2009 Nedko Arnaudov <nedko@arnaudov.name>
+ * Copyright (c) 2007,2008,2009,2011 Nedko Arnaudov <nedko@arnaudov.name>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -63,6 +63,7 @@ bool g_stop_request = false;
 static bool g_started = false;
 struct a2j * g_a2j = NULL;
 size_t g_max_jack_port_name_size;
+bool g_disable_port_uniqueness = false;
 
 bool g_a2j_export_hw_ports = false;
 char * g_a2j_jack_server_name = "default";
@@ -424,7 +425,7 @@ void
 a2j_help(
   const char * self)
 {
-  a2j_info("Usage: %s [-j jack-server] [-e | --export-hw]", self);
+  a2j_info("Usage: %s [-j jack-server] [-e | --export-hw] [-u]", self);
   a2j_info("Defaults:");
   a2j_info("-j default");
 }
@@ -469,7 +470,7 @@ main(
 
     int option_index = 0;
     int c;
-    while ((c = getopt_long(argc, argv, "j:eq", long_opts, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "j:eu", long_opts, &option_index)) != -1)
     {
       switch (c)
       {
@@ -478,6 +479,9 @@ main(
         break;
       case 'e':
         g_a2j_export_hw_ports = true;
+        break;
+      case 'u':
+        g_disable_port_uniqueness = true;
         break;
       default:
         a2j_help(argv[0]);
