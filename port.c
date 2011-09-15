@@ -220,9 +220,18 @@ a2j_port_create(
   }
 
   if (type == A2J_PORT_CAPTURE)
+  {
     err = a2j_alsa_connect_from(self, port->remote.client, port->remote.port);
+  }
   else
+  {
     err = snd_seq_connect_to(self->seq, self->port_id, port->remote.client, port->remote.port);
+    if (err != 0)
+    {
+      a2j_error("snd_seq_connect_to() for %d:%d failed with error %d", (int)port->remote.client, (int)port->remote.port, err);
+    }
+  }
+
   if (err)
   {
     a2j_info("port skipped: %s", port->name);
