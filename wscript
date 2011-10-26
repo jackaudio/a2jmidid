@@ -53,6 +53,7 @@ def set_options(opt):
     opt.tool_options('compiler_cc')
     opt.add_option('--enable-pkg-config-dbus-service-dir', action='store_true', default=False, help='force D-Bus service install dir to be one returned by pkg-config')
     opt.add_option('--disable-dbus', action='store_true', default=False, help="Don't enable D-Bus support even if required dependencies are present")
+    opt.add_option('--mandir', type='string', help="Manpage directory [Default: <prefix>/share/man]")
 
 def configure(conf):
     conf.check_tool('compiler_cc')
@@ -79,7 +80,10 @@ def configure(conf):
 
         conf.check_tool('misc')             # dbus service file subst tool
 
-    conf.env['MANDIR'] = os.path.normpath(conf.env['PREFIX'] + '/share/man')
+    if Params.g_options.mandir:
+        conf.env['MANDIR'] = Params.g_options.mandir
+    else:
+        conf.env['MANDIR'] = conf.env['PREFIX'] + '/share/man'
 
     conf.define('A2J_VERSION', VERSION)
     conf.write_config_header('config.h')
