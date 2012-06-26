@@ -87,6 +87,18 @@ static void a2j_dbus_set_hw_export(struct a2j_dbus_method_call * call_ptr)
   a2j_dbus_construct_method_return_void(call_ptr);
 }
 
+static void a2j_dbus_get_hw_export(struct a2j_dbus_method_call * call_ptr)
+{
+  dbus_bool_t hw_export;
+
+  hw_export = g_a2j_export_hw_ports;
+
+  a2j_dbus_construct_method_return_single(
+    call_ptr,
+    DBUS_TYPE_BOOLEAN,
+    &hw_export);
+}
+
 static
 void
 a2j_dbus_start(
@@ -361,6 +373,10 @@ A2J_DBUS_METHOD_ARGUMENTS_BEGIN(set_hw_export)
   A2J_DBUS_METHOD_ARGUMENT("hw_export", DBUS_TYPE_BOOLEAN_AS_STRING, A2J_DBUS_DIRECTION_IN)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(get_hw_export)
+  A2J_DBUS_METHOD_ARGUMENT("hw_export", DBUS_TYPE_BOOLEAN_AS_STRING, A2J_DBUS_DIRECTION_OUT)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
 A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(exit, a2j_dbus_exit)
   A2J_DBUS_METHOD_DESCRIBE(start, a2j_dbus_start)
@@ -370,6 +386,7 @@ A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(map_alsa_to_jack_port, a2j_dbus_map_alsa_to_jack_port)
   A2J_DBUS_METHOD_DESCRIBE(map_jack_port_to_alsa, a2j_dbus_map_jack_port_to_alsa)
   A2J_DBUS_METHOD_DESCRIBE(set_hw_export, a2j_dbus_set_hw_export)
+  A2J_DBUS_METHOD_DESCRIBE(get_hw_export, a2j_dbus_get_hw_export)
 A2J_DBUS_METHODS_END
 
 A2J_DBUS_SIGNAL_ARGUMENTS_BEGIN(bridge_started)

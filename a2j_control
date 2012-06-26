@@ -52,6 +52,10 @@ def main():
                     print "Bridging enabled"
                 else:
                     print "Bridging disabled"
+                if control_iface.get_hw_export():
+                    print "Hardware exported"
+                else:
+                    print "Hardware not exported"
             elif arg == "gjcn":
                 print "--- get jack client name"
                 print control_iface.get_jack_client_name()
