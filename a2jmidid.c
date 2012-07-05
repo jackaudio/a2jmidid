@@ -501,7 +501,7 @@ main(
 
   a2j_info("JACK MIDI <-> ALSA sequencer MIDI bridge, version " A2J_VERSION " (" GIT_VERSION ") built on %s", timestamp_str);
   a2j_info("Copyright 2006,2007 Dmitry S. Baikov");
-  a2j_info("Copyright 2007,2008,2009,2011 Nedko Arnaudov");
+  a2j_info("Copyright 2007,2008,2009,2011,2012 Nedko Arnaudov");
 
   if (dbus)
   {

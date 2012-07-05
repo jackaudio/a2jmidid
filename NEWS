@@ -1,3 +1,10 @@
+= Version 8 "Sophronius of Vratsa" on 2012-07-05 =
+ * -u commandline option
+ * D-Bus method for checking whether hw export is enabled. Kudos to Danni Coy
+ * Fix for resource leak. Kudos to Dan A. Muresan
+ * Improved error message for snd_seq_connect_to() failures
+ * --mandir= option in waf. Kudos to Dan Church
+
 = Version 7 "Paisius of Hilendar" on 2011-01-16 =
  * MIDI processing improvements
  * Use the JACK limit for max port name size (sr #2526)
