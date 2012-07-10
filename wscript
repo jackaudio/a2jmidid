@@ -66,7 +66,8 @@ def configure(conf):
     else:
         conf.env['DBUS_ENABLED'] = False
 
-    conf.env['LIB_DL'] = ['dl', 'pthread']
+    conf.env['LIB_DL'] = ['dl']
+    conf.env['LIB_PTHREAD'] = ['pthread']
 
     #conf.check_header('expat.h', mandatory=True)
     #conf.env['LIB_EXPAT'] = ['expat']
@@ -152,7 +153,7 @@ def build(bld):
 
     prog.includes = '.' # make waf dependency tracking work
     prog.target = 'a2jmidid'
-    prog.uselib = 'ALSA JACK DL'
+    prog.uselib = 'ALSA JACK DL PTHREAD'
     if bld.env()['DBUS_ENABLED']:
         prog.uselib += " DBUS-1"
     prog = bld.create_obj('cc', 'program')
