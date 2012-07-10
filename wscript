@@ -66,7 +66,7 @@ def configure(conf):
     else:
         conf.env['DBUS_ENABLED'] = False
 
-    conf.env['LIB_DL'] = ['dl']
+    conf.env['LIB_DL'] = ['dl', 'pthread']
 
     #conf.check_header('expat.h', mandatory=True)
     #conf.env['LIB_EXPAT'] = ['expat']
