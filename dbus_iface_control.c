@@ -99,6 +99,49 @@ static void a2j_dbus_get_hw_export(struct a2j_dbus_method_call * call_ptr)
     &hw_export);
 }
 
+static void a2j_dbus_get_disable_port_uniqueness(struct a2j_dbus_method_call * call_ptr)
+{
+  dbus_bool_t disable_port_uniqueness;
+
+  disable_port_uniqueness = g_disable_port_uniqueness;
+
+  a2j_dbus_construct_method_return_single(
+    call_ptr,
+    DBUS_TYPE_BOOLEAN,
+    &disable_port_uniqueness);
+}
+
+static void a2j_dbus_set_disable_port_uniqueness(struct a2j_dbus_method_call * call_ptr)
+{
+  DBusError error;
+  dbus_bool_t disable_port_uniqueness;
+
+  if (a2j_is_started())
+  {
+    a2j_dbus_error(call_ptr, A2J_DBUS_ERROR_BRIDGE_RUNNING, "Bridge is started");
+    return;
+  }
+
+  dbus_error_init(&error);
+
+  if (!dbus_message_get_args(
+        call_ptr->message,
+        &error,
+        DBUS_TYPE_BOOLEAN, &disable_port_uniqueness,
+        DBUS_TYPE_INVALID))
+  {
+    a2j_dbus_error(call_ptr, A2J_DBUS_ERROR_INVALID_ARGS, "Invalid arguments to method \"%s\"", call_ptr->method_name);
+    dbus_error_free(&error);
+    return;
+  }
+
+  g_disable_port_uniqueness = disable_port_uniqueness;
+
+  a2j_info("Unique port names %s.", g_disable_port_uniqueness ? "disabled": "enabled");
+
+  a2j_dbus_construct_method_return_void(call_ptr);
+}
+
 static
 void
 a2j_dbus_start(
@@ -377,6 +420,14 @@ A2J_DBUS_METHOD_ARGUMENTS_BEGIN(get_hw_export)
   A2J_DBUS_METHOD_ARGUMENT("hw_export", DBUS_TYPE_BOOLEAN_AS_STRING, A2J_DBUS_DIRECTION_OUT)
 A2J_DBUS_METHOD_ARGUMENTS_END
 
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(set_disable_port_uniqueness)
+  A2J_DBUS_METHOD_ARGUMENT("disable_port_uniqueness", DBUS_TYPE_BOOLEAN_AS_STRING, A2J_DBUS_DIRECTION_IN)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
+A2J_DBUS_METHOD_ARGUMENTS_BEGIN(get_disable_port_uniqueness)
+  A2J_DBUS_METHOD_ARGUMENT("disable_port_uniqueness", DBUS_TYPE_BOOLEAN_AS_STRING, A2J_DBUS_DIRECTION_OUT)
+A2J_DBUS_METHOD_ARGUMENTS_END
+
 A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(exit, a2j_dbus_exit)
   A2J_DBUS_METHOD_DESCRIBE(start, a2j_dbus_start)
@@ -387,6 +438,8 @@ A2J_DBUS_METHODS_BEGIN
   A2J_DBUS_METHOD_DESCRIBE(map_jack_port_to_alsa, a2j_dbus_map_jack_port_to_alsa)
   A2J_DBUS_METHOD_DESCRIBE(set_hw_export, a2j_dbus_set_hw_export)
   A2J_DBUS_METHOD_DESCRIBE(get_hw_export, a2j_dbus_get_hw_export)
+  A2J_DBUS_METHOD_DESCRIBE(set_disable_port_uniqueness, a2j_dbus_set_disable_port_uniqueness)
+  A2J_DBUS_METHOD_DESCRIBE(get_disable_port_uniqueness, a2j_dbus_get_disable_port_uniqueness)
 A2J_DBUS_METHODS_END
 
 A2J_DBUS_SIGNAL_ARGUMENTS_BEGIN(bridge_started)

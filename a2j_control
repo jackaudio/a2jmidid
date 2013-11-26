@@ -24,6 +24,8 @@ def main():
         print "    mj2a <jack_port_name>       - map JACK port to ALSA port"
         print "    ehw                         - enable export of hardware ports"
         print "    dhw                         - disable export of hardware ports"
+        print "    dup                         - disallow unique port names"
+        print "    aup                         - allow unique port names"
         sys.exit(0)
     
     bus = dbus.SessionBus()
@@ -56,6 +58,10 @@ def main():
                     print "Hardware exported"
                 else:
                     print "Hardware not exported"
+                if control_iface.get_disable_port_uniqueness():
+                    print "Avoiding unique port names"
+                else:
+                    print "Allowing unique port names"
             elif arg == "gjcn":
                 print "--- get jack client name"
                 print control_iface.get_jack_client_name()
@@ -97,6 +103,12 @@ def main():
             elif arg == 'dhw':
                 print "--- disable export of hardware ports"
                 control_iface.set_hw_export(False)
+            elif arg == 'aup':
+                print "--- allow unique port names"
+                control_iface.set_disable_port_uniqueness(False)
+            elif arg == 'dup':
+                print "--- disallow unique port names"
+                control_iface.set_disable_port_uniqueness(True)
             else:
                 print "Unknown command '%s'" % arg
         except dbus.DBusException, e:
