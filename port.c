@@ -116,10 +116,11 @@ a2j_port_fill_name(
     ret = snprintf(
       port_ptr->name,
       g_max_jack_port_name_size,
-      "%s [%d] (%s): %s",
+      "%s [%d] (%s): [%d] %s",
       snd_seq_client_info_get_name(client_info_ptr),
       snd_seq_client_info_get_client(client_info_ptr),
       type == A2J_PORT_CAPTURE ? "capture": "playback",
+      snd_seq_port_info_get_port(port_info_ptr),
       snd_seq_port_info_get_name(port_info_ptr));
   }
   else
