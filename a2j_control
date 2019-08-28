@@ -1,118 +1,203 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-name_base = 'org.gna.home.a2jmidid'
-control_interface_name = name_base + '.control'
-service_name = name_base
-
-import sys
-import os
-from traceback import print_exc
-
+from argparse import ArgumentParser
 import dbus
 
-def main():
-    if len(sys.argv) == 1:
-        print "Usage: %s [command] [command] ..." % os.path.basename(sys.argv[0])
-        print "Commands:"
-        print "    exit                        - exit a2j bridge dbus service"
-        print "    start                       - start bridging"
-        print "    stop                        - stop brdiging"
-        print "    status                      - get bridging status"
-        print "    gjcn                        - get JACK client name"
-        print "    ma2jp <client_id> <port_id> - map ALSA to JACK playback port"
-        print "    ma2jc <client_id> <port_id> - map ALSA to JACK capture port"
-        print "    mj2a <jack_port_name>       - map JACK port to ALSA port"
-        print "    ehw                         - enable export of hardware ports"
-        print "    dhw                         - disable export of hardware ports"
-        print "    dup                         - disallow unique port names"
-        print "    aup                         - allow unique port names"
-        sys.exit(0)
-    
-    bus = dbus.SessionBus()
 
-    controller = bus.get_object(service_name, "/")
-    control_iface = dbus.Interface(controller, control_interface_name)
+class A2JControl:
+    """
+    Class holding all data and relevant functions to interact with the a2j dbus
+    controller interface.
+    """
 
-    # check arguments
-    index = 1
-    while index < len(sys.argv):
-        arg = sys.argv[index]
-        index += 1
-        try:
-            if arg == "exit":
-                print "--- exit"
-                control_iface.exit()
-            elif arg == "start":
-                print "--- start"
-                control_iface.start()
-            elif arg == "stop":
-                print "--- stop"
-                control_iface.stop()
-            elif arg == "status":
-                print "--- status"
-                if control_iface.is_started():
-                    print "Bridging enabled"
-                else:
-                    print "Bridging disabled"
-                if control_iface.get_hw_export():
-                    print "Hardware exported"
-                else:
-                    print "Hardware not exported"
-                if control_iface.get_disable_port_uniqueness():
-                    print "Avoiding unique port names"
-                else:
-                    print "Allowing unique port names"
-            elif arg == "gjcn":
-                print "--- get jack client name"
-                print control_iface.get_jack_client_name()
-            elif arg == 'ma2jp':
-                print "--- map ALSA to JACK playback port"
-                if index + 1 >= len(sys.argv):
-                    print "map ALSA to JACK playback port command requires ALSA client ID and ALSA port ID arguments"
-                    sys.exit()
-                client_id = sys.argv[index]
-                index += 1
-                port_id = sys.argv[index]
-                index += 1
+    service_name = 'org.gna.home.a2jmidid'
+    control_interface_name = service_name + '.control'
+    controller_interface = None
+    parser = None
+    args = None
 
-                print "'%s'" % control_iface.map_alsa_to_jack_port(client_id, port_id, True)
-            elif arg == 'ma2jc':
-                print "--- map ALSA to JACK capture port"
-                if index + 1 >= len(sys.argv):
-                    print "map ALSA to JACK capture port command requires ALSA client ID and ALSA port ID arguments"
-                    sys.exit()
-                client_id = sys.argv[index]
-                index += 1
-                port_id = sys.argv[index]
-                index += 1
+    def add_arg_parser(self):
+        self.parser = ArgumentParser(
+                description='Bridge ALSA MIDI to JACK MIDI')
+        self.parser.add_argument(
+                '--start',
+                action='store_true',
+                default=False,
+                help='Start bridging')
+        self.parser.add_argument(
+                '--stop',
+                action='store_true',
+                default=False,
+                help='Stop bridging')
+        self.parser.add_argument(
+                '--exit',
+                action='store_true',
+                default=False,
+                help='Exit a2j bridge dbus service')
+        self.parser.add_argument(
+                '--status',
+                action='store_true',
+                default=False,
+                help='Display bridging status')
+        self.parser.add_argument(
+                '--gjcn', '--jack-client-name',
+                action='store_true',
+                default=False,
+                help='Get JACK client name')
+        self.parser.add_argument(
+                '--ma2jp',
+                default=None,
+                nargs=2,
+                help='Map ALSA input port to JACK output port' +
+                ' (requires ALSA client ID and JACK port ID arguments)')
+        self.parser.add_argument(
+                '--ma2jc',
+                default=None,
+                nargs=2,
+                help='Map ALSA output port to JACK input port ' +
+                '(requires ALSA client ID and JACK port ID arguments)')
+        self.parser.add_argument(
+                '--mj2a',
+                default=None,
+                nargs=1,
+                help='Map JACK port to ALSA port (requires JACK port name)')
+        self.parser.add_argument(
+                '--ehw',
+                action='store_true',
+                default=False,
+                help='Enable export of ALSA hardware ports')
+        self.parser.add_argument(
+                '--dhw',
+                action='store_true',
+                default=False,
+                help='Disable export of ALSA hardware ports')
+        self.parser.add_argument(
+                '--aup',
+                action='store_true',
+                default=False,
+                help='Allow unique port names')
+        self.parser.add_argument(
+                '--dup',
+                action='store_true',
+                default=False,
+                help='Disallow unique port names')
+        self.args = self.parser.parse_args()
 
-                print "'%s'" % control_iface.map_alsa_to_jack_port(client_id, port_id, False)
-            elif arg == 'mj2a':
-                print "--- map JACK to ALSA port"
-                if index >= len(sys.argv):
-                    print "map JACK to ALSA port command requires JACK port name argument"
-                    sys.exit()
-                jack_port = sys.argv[index]
-                index += 1
+    def initialize_dbus_controller_interface(self):
+        controller = dbus.SessionBus().get_object(self.service_name, "/")
+        self.controller_interface = dbus.Interface(
+                controller,
+                self.control_interface_name)
 
-                out = control_iface.map_jack_port_to_alsa(jack_port)
-                print "%u:%u ('%s':'%s')" % (int(out[0]), int(out[1]), str(out[2]), str(out[3]))
-            elif arg == 'ehw':
-                print "--- enable export of hardware ports"
-                control_iface.set_hw_export(True)
-            elif arg == 'dhw':
-                print "--- disable export of hardware ports"
-                control_iface.set_hw_export(False)
-            elif arg == 'aup':
-                print "--- allow unique port names"
-                control_iface.set_disable_port_uniqueness(False)
-            elif arg == 'dup':
-                print "--- disallow unique port names"
-                control_iface.set_disable_port_uniqueness(True)
-            else:
-                print "Unknown command '%s'" % arg
-        except dbus.DBusException, e:
-            print "DBus exception: %s" % str(e)
+    def controller_start(self):
+        print('--- start')
+        self.controller_interface.start()
+
+    def controller_stop(self):
+        print('--- stop')
+        self.controller_interface.stop()
+
+    def controller_exit(self):
+        print('--- exit')
+        self.controller_interface.exit()
+
+    def controller_status(self):
+        print('--- status')
+        if self.controller_interface.is_started():
+            print('Bridging enabled')
+        else:
+            print('Bridging disabled')
+        if self.controller_interface.get_hw_export():
+            print('Hardware exported')
+        else:
+            print('Hardware not exported')
+        if self.controller_interface.get_disable_port_uniqueness():
+            print('Avoiding unique port names')
+        else:
+            print('Allowing unique port names')
+
+    def controller_map_alsa_in_to_jack_playback(
+            self,
+            alsa_client_id,
+            jack_port):
+        print('--- map ALSA to JACK playback port')
+        print('{}'.format(self.controller_interface.map_alsa_to_jack_port(
+            alsa_client_id,
+            jack_port,
+            True)))
+
+    def controller_map_alsa_out_to_jack_capture(
+            self,
+            alsa_client_id,
+            jack_port):
+        print('--- map ALSA to JACK capture port')
+        print('{}'.format(self.controller_interface.map_alsa_to_jack_port(
+            alsa_client_id,
+            jack_port,
+            False)))
+
+    def controller_map_jack_port_to_alsa(self, jack_port):
+        print('--- map JACK to ALSA port')
+        out = self.controller_interface.map_jack_port_to_alsa(jack_port)
+        print('{}:{} ({}:{})'.format(out[0], out[1], out[2], out[3]))
+
+    def controller_get_jack_client_name(self):
+        print('--- get jack client name')
+        print(self.controller_interface.get_jack_client_name())
+
+    def controller_export_hardware_ports(self, state):
+        if state:
+            print('--- enable export of hardware ports')
+            self.controller_interface.set_hw_export(True)
+        else:
+            print('--- disable export of hardware ports')
+            self.controller_interface.set_hw_export(False)
+
+    def controller_set_port_name_uniqueness(self, state):
+        if state:
+            print('--- allow unique port names')
+            self.controller_interface.set_disable_port_uniqueness(False)
+        else:
+            print('--- disallow unique port names')
+            self.controller_interface.set_disable_port_uniqueness(True)
+
+    def call_controller_function(self):
+        if self.args.start:
+            self.controller_start()
+        elif self.args.stop:
+            self.controller_stop()
+        elif self.args.exit:
+            self.controller_exit()
+        elif self.args.status:
+            self.controller_status()
+        elif self.args.gjcn:
+            self.controller_get_jack_client_name()
+        elif self.args.ma2jp:
+            self.controller_map_alsa_in_to_jack_playback(
+                    self.args.ma2jp[0],
+                    self.args.ma2jp[1])
+        elif self.args.ma2jc:
+            self.controller_map_alsa_in_to_jack_playback(
+                    self.args.ma2jc[0],
+                    self.args.ma2jc[1])
+        elif self.args.mj2a:
+            self.controller_map_jack_port_to_alsa(self.args.mj2a[0])
+        elif self.args.ehw:
+            self.controller_export_hardware_ports(True)
+        elif self.args.dhw:
+            self.controller_export_hardware_ports(False)
+        elif self.args.dup:
+            self.controller_set_port_name_uniqueness(False)
+        elif self.args.aup:
+            self.controller_set_port_name_uniqueness(True)
+        else:
+            self.parser.print_help()
+
+    def __init__(self):
+        self.initialize_dbus_controller_interface()
+        self.add_arg_parser()
+        self.call_controller_function()
+
 
 if __name__ == '__main__':
-    main()
+    A2JControl()
