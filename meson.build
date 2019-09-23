@@ -51,12 +51,12 @@ else
   dep_dbus = dependency('dbus-1')
   deps_a2jmidid += [dep_dbus]
   dbus_data = configuration_data()
-  dbus_data.set('bindir', join_paths(get_option('prefix'),get_option('bindir')))
+  dbus_data.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
   configure_file(
     input: 'org.gna.home.a2jmidid.service.in',
     output: 'org.gna.home.a2jmidid.service',
     install: true,
-    install_dir: '/share/dbus-1/services',
+    install_dir: join_paths(get_option('prefix'), '/share/dbus-1/services'),
     configuration: dbus_data
   )
   conf_data.set10('dbus', true)
@@ -67,7 +67,18 @@ else
     'sigsegv.c']
   install_man('man/a2j.1')
   install_man('man/a2j_control.1')
-  meson.add_install_script('install_script.sh')
+  configure_file(
+    input: 'a2j',
+    output: 'a2j',
+    copy: true,
+    install: true,
+    install_dir: join_paths(get_option('prefix'), '/bin'))
+  configure_file(
+    input: 'a2j_control',
+    output: 'a2j_control',
+    copy: true,
+    install: true,
+    install_dir: join_paths(get_option('prefix'), '/bin'))
 endif
 
 config_header = configure_file(
