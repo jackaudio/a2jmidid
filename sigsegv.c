@@ -94,8 +94,10 @@ static void signal_segv(int signum, siginfo_t* info, void*ptr) {
 #if !defined(__alpha__) && !defined(__ia64__) && !defined(__FreeBSD_kernel__) && !defined(__arm__) && !defined(__hppa__) && !defined(__sh__) && !defined(__aarch64__)
     for(i = 0; i < NGREG; i++)
         a2j_error("reg[%02d]       = 0x" REGFORMAT, i,
-#if defined(__powerpc__)
+#if defined(__powerpc__) && !defined(__powerpc64__)
                 ucontext->uc_mcontext.uc_regs[i]
+#elif defined(__powerpc64__)
+                ucontext->uc_mcontext.gp_regs[i]
 #elif defined(__sparc__) && defined(__arch64__)
                 ucontext->uc_mcontext.mc_gregs[i]
 #else
