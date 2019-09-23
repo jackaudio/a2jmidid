@@ -2,13 +2,14 @@
 Changelog
 =========
 
-Version 9 (in spe)
-------------------
+Version 9 on 2019-09-24
+-----------------------
 
+* architecture fixes for aarch64 and powerpc64
 * porting a2j_control to python3
 * replace waf with meson as build system
 * control unique port names over D-Bus
-* man page fixes
+* man page spelling fixes
 * fix linking against libpthread
 
 Version 8 "Sophronius of Vratsa" on 2012-07-05
