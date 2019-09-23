@@ -1,0 +1,1 @@
+option('disable-dbus', type: 'boolean', value: false, description: 'Disable D-Bus support (default: false)')
