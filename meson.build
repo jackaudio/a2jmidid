@@ -52,7 +52,7 @@ else
   deps_a2jmidid += [dep_dbus]
   dbus_data = configuration_data()
   dbus_data.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
-  dbus_data.set('dbus_service_dir', join_paths(get_option('prefix'), '/share/dbus-1/services'))
+  dbus_data.set('dbus_service_dir', join_paths(get_option('prefix'), 'share', 'dbus-1', 'services'))
   configure_file(
     input: 'org.gna.home.a2jmidid.service.in',
     output: 'org.gna.home.a2jmidid.service',
