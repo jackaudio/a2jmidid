@@ -28,7 +28,7 @@ Install
 |meson| is able to install the project components to the system directories
 (when run as root), while honoring the *DESTDIR* environment variable::
 
-  DESTDIR="${pkgdir}" meson install -C build
+  DESTDIR="/some/other/location" meson install -C build
 
 .. |meson| raw:: html
 
