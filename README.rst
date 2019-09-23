@@ -11,7 +11,7 @@ system:
 **Automatic bridging**: For every |alsa| sequencer port you get one |jack| MIDI
 port. If an |alsa| sequencer port is both an input and an output, you get two
 |jack| MIDI ports, one input and output.
-(*This approach works almost always except when the legacy |alsa| sequencer
+(*This approach works almost always except when the legacy ALSA sequencer
 application does not create ports and/or wants to use an existing port to
 capture from or playback to. Such programs are using a feature of the |alsa|
 sequencer framework that allows sending and receiving MIDI events to/from a
