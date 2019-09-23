@@ -1,0 +1,10 @@
+#ifndef _CONFIG_H
+#define _CONFIG_H
+
+#define HAVE_ALSA 1
+#define HAVE_JACK 1
+#define HAVE_DBUS_1 @dbus@
+#define HAVE_GETOPT_H 1
+#define A2J_VERSION "@version@"
+
+#endif
