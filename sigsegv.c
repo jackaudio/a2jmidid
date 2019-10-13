@@ -84,7 +84,7 @@ static void signal_segv(int signum, siginfo_t* info, void*ptr) {
     }
     else
     {
-        a2j_error("Unknown bad signal catched!");
+        a2j_error("Unknown bad signal caught!");
     }
 
     a2j_error("info.si_signo = %d", signum);
