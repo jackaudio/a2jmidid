@@ -7,11 +7,11 @@
 if test $# -eq 1 -a x$1 = x-e
 then
     echo "hardware ports export"
-    a2j_control ehw
+    a2j_control --ehw
 else
-    a2j_control dhw
+    a2j_control --dhw
 fi
 
-a2j_control start
-trap "a2j_control stop; exit" INT TERM
+a2j_control --start
+trap "a2j_control --stop; exit" INT TERM
 read unused
