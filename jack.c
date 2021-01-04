@@ -36,6 +36,7 @@
 #include "port_thread.h"
 
 static bool g_freewheeling = false;
+extern bool g_filter_note_on;
 
 /*
  * =================== Input/output port handling =========================
@@ -176,7 +177,7 @@ a2j_input_event(
   }
 
   // fixup NoteOn with vel 0
-  if ((data[0] & 0xF0) == 0x90 && data[2] == 0x00) {
+  if (g_filter_note_on && (data[0] & 0xF0) == 0x90 && data[2] == 0x00) {
     data[0] = 0x80 + (data[0] & 0x0F);
     data[2] = 0x40;
   }

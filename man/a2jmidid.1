@@ -3,7 +3,7 @@
 .SH NAME 
 a2jmidid \- JACK MIDI daemon for ALSA MIDI
 .SH SYNOPSIS
-.B a2jmidid [-j jack-server] [e | --export-hw]
+.B a2jmidid [-j jack-server] [e | --export-hw] [-u] [-n]
 .SH DESCRIPTION
 a2jmidid is a daemon that implements automatic bridging. For every ALSA
 sequencer port you get one JACK midi port. If ALSA sequencer port is
@@ -16,6 +16,8 @@ forces a2jmidid to bridge hardware ports as well as software ports
 forces a2jmidid to generate non-unique port names (see NOTES)
 .IP -j
 specifies which jack-server to use
+.IP -n
+do not filter note on
 .SH NOTES
 ALSA does not guarantee client names to by unique. I.e. it is possible
 to have two apps that create two clients with same ALSA client name.
