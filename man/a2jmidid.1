@@ -17,7 +17,7 @@ forces a2jmidid to generate non-unique port names (see NOTES)
 .IP -j
 specifies which jack-server to use
 .SH NOTES
-ALSA does not guarantee client names to by unique. I.e. it is possible
+ALSA does not guarantee client names to be unique. I.e. it is possible
 to have two apps that create two clients with same ALSA client name.
 JACK however requires port names to be unique. To ensure this uniqueness,
 a2jmidid will add the unique numeric ALSA client ID to the JACK port name.
